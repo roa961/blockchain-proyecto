@@ -17,6 +17,7 @@ type Transaction struct {
 	Sender    string
 	Recipient string
 	Amount    float64
+	Nonce     int
 }
 
 type Block struct {
@@ -25,7 +26,6 @@ type Block struct {
 	Transactions []Transaction
 	PreviousHash string
 	Hash         string
-	Nonce        int
 }
 
 func saveBlock(db *leveldb.DB, block Block) error {
@@ -57,22 +57,21 @@ func loadBlock(db *leveldb.DB, index int) (*Block, error) {
 
 // nonce tiene que ser incremental
 func calculateHash(b Block) string {
-	data := fmt.Sprintf("%d%d%d", b.Index, b.Timestamp, b.PreviousHash, b.Nonce)
+	data := fmt.Sprintf("%d%d%s", b.Index, b.Timestamp, b.PreviousHash)
 	for _, tx := range b.Transactions {
-		data += fmt.Sprintf("%s%s%f", tx.Sender, tx.Recipient, tx.Amount)
+		data += fmt.Sprintf("%s%s%f%d", tx.Sender, tx.Recipient, tx.Amount, tx.Nonce)
 	}
 	h := sha256.New()
 	h.Write([]byte(data))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func generateBlock(index int, previousHash string, transactions []Transaction, nonce int) Block {
+func generateBlock(index int, previousHash string, transactions []Transaction) Block {
 	block := Block{
 		Index:        index,
 		Timestamp:    time.Now().Unix(),
 		Transactions: transactions,
 		PreviousHash: previousHash,
-		Nonce:        nonce,
 	}
 	block.Hash = calculateHash(block)
 	//fmt.Printf(block.Hash)
@@ -92,7 +91,7 @@ func PrintBlockData(block *Block) {
 	}
 }
 
-func getLastHash(db *leveldb.DB) (string, float64) {
+func getLastHash(db *leveldb.DB) string {
 	iter := db.NewIterator(nil, nil)
 	iter.Last()
 	if iter.Error() != nil {
@@ -115,10 +114,10 @@ func getLastHash(db *leveldb.DB) (string, float64) {
 	}
 
 	PreviousHash := parsedData["Hash"].(string)
-	lastNonce := parsedData["Nonce"].(float64)
-	fmt.Println(lastNonce)
+	//lastNonce := parsedData["Nonce"].(float64)
+	//fmt.Println(lastNonce)
 
-	return PreviousHash, lastNonce
+	return PreviousHash
 
 	//value := iter.Value()
 	//fmt.Printf("Last Key: %s, Last Value: %s\n", key, value)
@@ -132,6 +131,7 @@ func main() {
 			Sender:    "Alice",
 			Recipient: "Bob",
 			Amount:    25.0,
+			Nonce:     1,
 		},
 		// // Ejemplo 2
 		// {
@@ -182,7 +182,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	block := generateBlock(1, "", transactions, 1)
+	block := generateBlock(1, "", transactions)
 	if err := saveBlock(db, block); err != nil {
 		log.Fatal(err)
 	}
@@ -209,8 +209,8 @@ func main() {
 			fmt.Println("Has seleccionado la Opción 1.")
 			index := rand.Intn(999999999)
 			fmt.Println("Su indice es", index)
-			PreviousHash, lastNonce := getLastHash(db)
-			block := generateBlock(index, PreviousHash, transactions, int(lastNonce)+1)
+			PreviousHash := getLastHash(db)
+			block := generateBlock(index, PreviousHash, transactions)
 			if err := saveBlock(db, block); err != nil {
 				log.Fatal(err)
 			}
