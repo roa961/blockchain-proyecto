@@ -104,7 +104,6 @@ func main() {
 			Nonce:     1,
 		},
 	}
-
 	dbPath := "./leveldb/"
 	dbPath_cache := "./leveldb/cache"
 	// Abrir la base de datos (creará una si no existe)
@@ -123,11 +122,10 @@ func main() {
 	// 	block := generateBlock(i, "", transactions)
 	// 	if err := saveBlock(db, block); err != nil {
 	// 		log.Fatal(err)
-
 	// 	}
 	// 	fmt.Printf("Bloque %d generado y guardado.\n", i)
-
 	// }
+
 	block := generateBlock(1, "", transactions)
 	if err := saveBlock(db, block); err != nil {
 		log.Fatal(err)
@@ -140,11 +138,12 @@ func main() {
 
 	for {
 		// Mostrar el menú
+		fmt.Println("----------MENÚ-BLOCKCHAIN----------")
 		fmt.Println("Menú:")
 		fmt.Println("1. Hacer una transaccion")
-		fmt.Println("2. Opción 2")
+		fmt.Println("2. Leer transacción")
 		fmt.Println("3. Salir")
-
+		fmt.Println("-----------------------------------")
 		// Leer la opción del usuario
 		var opcion int
 		fmt.Print("Seleccione una opción: ")
@@ -198,13 +197,14 @@ func main() {
 			fmt.Println("este es el bloque sacado desde leveldb:")
 
 			prev_hash = block.Hash
-			fmt.Print(prev_hash)
+			fmt.Print(prev_hash, "\n")
 
 			iter_cache.Release()
 			if iter_cache.Error() != nil {
 				log.Fatalf("Error al iterar a través de LevelDB: %v", iter_cache.Error())
 			}
-			block = generateBlock(1, prev_hash, transaction)
+			nextIndex := block.Index + 1
+			block = generateBlock(nextIndex, prev_hash, transaction)
 			fmt.Printf("%s", key_cache)
 			err := dbCache.Delete(key_cache, nil)
 			if err != nil {
@@ -223,8 +223,20 @@ func main() {
 			fmt.Println("---FIN--TRANSACCION---")
 
 		case 2:
-			fmt.Println("Has seleccionado la Opción 2.")
-			// Agrega aquí el código para la Opción 2
+			var blockNumber int
+			fmt.Print("Ingrese el número del bloque que leer: ")
+			fmt.Scan(&blockNumber)
+
+			// Carga el bloque desde la base de datos
+			block, err := loadBlock(db, blockNumber)
+			if err != nil {
+				log.Printf("Error al cargar el bloque: %v", err)
+			} else {
+				fmt.Println("Bloque cargado desde la base de datos.")
+				PrintBlockData(*block)
+			}
+			// Imprime los datos del bloque
+
 		case 3:
 			fmt.Println("Saliendo del programa.")
 			defer dbCache.Close()
