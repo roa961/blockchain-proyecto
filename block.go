@@ -23,9 +23,7 @@ type Block struct{
     Timestamp int64
     Transactions []Transaction
     PreviousHash string
-    Hash string
-    
-    
+    Hash string    
 }
 
 func saveBlock(db *leveldb.DB, block Block) error{
@@ -94,36 +92,6 @@ func PrintBlockData(block Block){
     }
 }
 
-// func getLastHash(db *leveldb.DB) (string, float64) {
-// 	iter := db.NewIterator(&util.Range{Start: nil, Limit: nil}, nil)
-// 	iter.Last()
-// 	key := iter.Key()
-// 	data, err := db.Get(key, nil)
-// 	if err != nil {
-// 		if err == leveldb.ErrNotFound {
-// 			fmt.Println("Key not found in the LevelDB database.")
-// 		} else {
-// 			log.Fatalf("Failed to retrieve data: %v", err)
-// 		}
-// 	}
-
-// 	var parsedData map[string]interface{}
-// 	if err := json.Unmarshal(data, &parsedData); err != nil {
-// 		log.Fatalf("Failed to parse JSON data: %v", err)
-// 	}
-//     timestamp :=parsedData["Timestamp"].(float64)
-    
-// 	PreviousHash := parsedData["Hash"].(string)
-// 	lastNonce := parsedData["Nonce"].(float64)
-//     fmt.Println(lastNonce)
-//     fmt.Println(timestamp)
-    
-// 	return PreviousHash, lastNonce
-
-// 	//value := iter.Value()
-// 	//fmt.Printf("Last Key: %s, Last Value: %s\n", key, value)
-
-// }
 
 func main(){
     transactions := []Transaction{
@@ -192,8 +160,7 @@ func main(){
             fmt.Scan(&amount)
 
             // Aquí puedes establecer el valor del nonce como 1, ya que no se solicita al usuario.
-            
-
+        
             transaction := []Transaction{
                 {
                 Sender:    sender,
