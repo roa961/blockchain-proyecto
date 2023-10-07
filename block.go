@@ -5,14 +5,17 @@ import (
     "encoding/hex"
     "fmt"
     "github.com/syndtr/goleveldb/leveldb"
+    //"github.com/syndtr/goleveldb/leveldb/util"
     "log"
     "os"
     "encoding/json"
+    //"math/rand"
 )
 type Transaction struct {
     Sender string
     Recipient string
     Amount float64
+    Nonce int
 }
 
 type Block struct{
@@ -21,7 +24,7 @@ type Block struct{
     Transactions []Transaction
     PreviousHash string
     Hash string
-    Nonce int
+    
     
 }
 
@@ -51,42 +54,77 @@ func loadBlock(db *leveldb.DB, index int) (*Block, error) {
     }
     return &block, nil
 }
-//nonce tiene que ser incremental
+
 func calculateHash(b Block) string {
-    data:= fmt.Sprintf("%d%d%d", b.Index, b.Timestamp, b.PreviousHash, b.Nonce)
+    data:= fmt.Sprintf("%d%d%s", b.Index, b.Timestamp, b.PreviousHash)
     for _, tx := range b.Transactions{
-        data += fmt.Sprintf("%s%s%f", tx.Sender , tx.Recipient, tx.Amount)
+        data += fmt.Sprintf("%s%s%f%d", tx.Sender , tx.Recipient, tx.Amount, tx.Nonce)
     }
     h := sha256.New()
     h.Write([]byte(data))
     return hex.EncodeToString(h.Sum(nil))
 }
 
-func generateBlock(index int, previousHash string, transactions []Transaction, nonce int) Block {
+func generateBlock(index int, previousHash string, transactions []Transaction) Block {
     block := Block{
         Index: index,
         Timestamp: time.Now().Unix(),
         Transactions: transactions,
         PreviousHash: previousHash,
-        Nonce: nonce,
+      
     }
     block.Hash = calculateHash(block)
 
 
     return block
 }
-func PrintBlockData(block *Block){
+func PrintBlockData(block Block){
     fmt.Println("Contenido del bloque:")
     fmt.Printf("Index: %d\n", block.Index)
     fmt.Printf("Timestamp: %d\n", block.Timestamp)
+    fmt.Printf("Hash: %s\n",block.Hash)
     fmt.Println("Transactions:")
     for i, tx := range block.Transactions {
         fmt.Printf("  Transacción %d:\n", i+1)
         fmt.Printf("    Sender: %s\n", tx.Sender)
         fmt.Printf("    Recipient: %s\n", tx.Recipient)
         fmt.Printf("    Amount: %.2f\n", tx.Amount)
+        fmt.Printf("    Nonce: %d\n", tx.Nonce)
+
     }
 }
+
+// func getLastHash(db *leveldb.DB) (string, float64) {
+// 	iter := db.NewIterator(&util.Range{Start: nil, Limit: nil}, nil)
+// 	iter.Last()
+// 	key := iter.Key()
+// 	data, err := db.Get(key, nil)
+// 	if err != nil {
+// 		if err == leveldb.ErrNotFound {
+// 			fmt.Println("Key not found in the LevelDB database.")
+// 		} else {
+// 			log.Fatalf("Failed to retrieve data: %v", err)
+// 		}
+// 	}
+
+// 	var parsedData map[string]interface{}
+// 	if err := json.Unmarshal(data, &parsedData); err != nil {
+// 		log.Fatalf("Failed to parse JSON data: %v", err)
+// 	}
+//     timestamp :=parsedData["Timestamp"].(float64)
+    
+// 	PreviousHash := parsedData["Hash"].(string)
+// 	lastNonce := parsedData["Nonce"].(float64)
+//     fmt.Println(lastNonce)
+//     fmt.Println(timestamp)
+    
+// 	return PreviousHash, lastNonce
+
+// 	//value := iter.Value()
+// 	//fmt.Printf("Last Key: %s, Last Value: %s\n", key, value)
+
+// }
+
 func main(){
     transactions := []Transaction{
         // Ejemplo 1
@@ -94,31 +132,11 @@ func main(){
             Sender:    "Alice",
             Recipient: "Bob",
             Amount:    25.0,
+            Nonce: 1,
         },
-        // Ejemplo 2
-        {
-            Sender:    "Charlie",
-            Recipient: "David",
-            Amount:    50.5,
-        },
-        // Ejemplo 3
-        {
-            Sender:    "Eve",
-            Recipient: "Frank",
-            Amount:    100.75,
-        },
-        // Agrega más transacciones aquí si lo deseas
     }
 
-    previousHash := "hash_previo" // Reemplaza con el hash anterior adecuado
-    nonce := 1                 // Reemplaza con el valor adecuado
-
-
-
-    block := generateBlock(9999, previousHash, transactions, nonce)
-    //PrintBlockData(block)
-
-    dbPath := "./leveldb"
+    dbPath := "./leveldb/"
     // Abrir la base de datos (creará una si no existe)
     db, err := leveldb.OpenFile(dbPath, nil)
     if err != nil {
@@ -126,22 +144,25 @@ func main(){
     }
     defer db.Close()
 
+    
+    //boque raiz
+    for i := 1; i <= 20; i++ {
+		block := generateBlock(i, "", transactions)
+		if err := saveBlock(db, block); err != nil {
+			log.Fatal(err)
+            
+		}
+		fmt.Printf("Bloque %d generado y guardado.\n", i)
+        
+	}
 
-    if err := saveBlock(db, block); err != nil {
-        log.Fatal(err)
-    }
-    Index := 1
-    blockAux, err := loadBlock(db,  Index)
-    if err != nil {
-        log.Fatal(err)
-    }
 
-    PrintBlockData(blockAux)
-
+     nonce := 1
+    
     for {
         // Mostrar el menú
         fmt.Println("Menú:")
-        fmt.Println("1. Opción 1")
+        fmt.Println("1. Hacer una transaccion")
         fmt.Println("2. Opción 2")
         fmt.Println("3. Salir")
 
@@ -157,8 +178,70 @@ func main(){
         // Procesar la opción seleccionada
         switch opcion {
         case 1:
-            fmt.Println("Has seleccionado la Opción 1.")
-            // Agrega aquí el código para la Opción 1
+            fmt.Println("---INICIO--TRANSACCION---")
+            var sender, recipient string
+            var amount float64
+
+            fmt.Print("Ingrese el remitente: ")
+            fmt.Scan(&sender)
+
+            fmt.Print("Ingrese el destinatario: ")
+            fmt.Scan(&recipient)
+
+            fmt.Print("Ingrese el monto: ")
+            fmt.Scan(&amount)
+
+            // Aquí puedes establecer el valor del nonce como 1, ya que no se solicita al usuario.
+            
+
+            transaction := []Transaction{
+                {
+                Sender:    sender,
+                Recipient: recipient,
+                Amount:    amount,
+                Nonce:     nonce,
+                },
+            }
+            // Iterador para buscar el valor de nonce
+            iter := db.NewIterator(nil, nil)
+            var prev_hash string
+            for iter.Next() {
+
+                
+                
+
+                fmt.Println("hola")
+                if(iter.Last()){
+                value := iter.Value()
+                fmt.Printf("Valor del iterador con la funcion LAST: %s\n", value)
+                
+                } 
+                var block Block
+                if err := json.Unmarshal(iter.Value(), &block); err != nil {
+                    log.Fatalf("Error al deserializar el bloque: %v", err)
+                }
+                fmt.Println("este es el bloque sacado desde leveldb:")
+                
+                prev_hash = block.Hash
+                fmt.Print(prev_hash)
+                
+                
+            }
+            
+            iter.Release()
+            if iter.Error() != nil {
+                log.Fatalf("Error al iterar a través de LevelDB: %v", iter.Error())
+            }
+            
+            block := generateBlock(1, prev_hash,transaction)
+            if err := saveBlock(db, block); err != nil {
+                log.Fatal(err)
+            }
+            fmt.Printf("Bloque generado y guardado.\n")
+    
+
+            
+            fmt.Println("---FIN--TRANSACCION---")
         case 2:
             fmt.Println("Has seleccionado la Opción 2.")
             // Agrega aquí el código para la Opción 2
@@ -172,4 +255,5 @@ func main(){
 
 
 }
-
+//como buscar el bloque anterior para hashearlo y entregarlo al nuevo bloque? se busca por indice?
+//como crear el bloque raiz
