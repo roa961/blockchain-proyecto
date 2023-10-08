@@ -83,6 +83,7 @@ func PrintBlockData(block Block) {
 	fmt.Printf("Index: %d\n", block.Index)
 	fmt.Printf("Timestamp: %d\n", block.Timestamp)
 	fmt.Printf("Hash: %s\n", block.Hash)
+	fmt.Printf("Hash previo: %s\n", block.PreviousHash)
 	fmt.Println("Transactions:")
 	for i, tx := range block.Transactions {
 		fmt.Printf("  Transacción %d:\n", i+1)
@@ -92,6 +93,15 @@ func PrintBlockData(block Block) {
 		fmt.Printf("    Nonce: %d\n", tx.Nonce)
 
 	}
+}
+
+func getNewNonce(block Block) int {
+	var actNonce int
+	for i, tx := range block.Transactions {
+		actNonce = tx.Nonce + i
+	}
+
+	return actNonce
 }
 
 func main() {
@@ -143,8 +153,6 @@ func main() {
 
 	}
 
-	nonce := 1
-
 	for {
 		// Mostrar el menú
 		fmt.Println("----------MENÚ-BLOCKCHAIN----------")
@@ -180,14 +188,6 @@ func main() {
 
 			// Aquí puedes establecer el valor del nonce como 1, ya que no se solicita al usuario.
 
-			transaction := []Transaction{
-				{
-					Sender:    sender,
-					Recipient: recipient,
-					Amount:    amount,
-					Nonce:     nonce,
-				},
-			}
 			// Iterador para buscar el valor de previous hash
 			iter_cache := dbCache.NewIterator(nil, nil)
 			var prev_hash string
@@ -205,16 +205,26 @@ func main() {
 			}
 			fmt.Println("este es el bloque sacado desde leveldb:")
 
+			nonce := block.Transactions[0].Nonce
+			//fmt.Print(nonce)
+			transaction := []Transaction{
+				{
+					Sender:    sender,
+					Recipient: recipient,
+					Amount:    amount,
+					Nonce:     nonce + 1,
+				},
+			}
+
 			prev_hash = block.Hash
 			fmt.Print(prev_hash, "\n")
-
 			iter_cache.Release()
 			if iter_cache.Error() != nil {
 				log.Fatalf("Error al iterar a través de LevelDB: %v", iter_cache.Error())
 			}
 			nextIndex := block.Index + 1
 			block = generateBlock(nextIndex, prev_hash, transaction)
-			fmt.Printf("%s", key_cache)
+			//fmt.Printf("%s", key_cache)
 			err := dbCache.Delete(key_cache, nil)
 			if err != nil {
 				log.Printf("Error deleting key %s: %v", key_cache, err)
