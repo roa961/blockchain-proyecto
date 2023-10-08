@@ -116,7 +116,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	defer dbCache.Close()
 	//boque raiz
 	// for i := 1; i <= 20; i++ {
 	// 	block := generateBlock(i, "", transactions)
@@ -126,12 +126,21 @@ func main() {
 	// 	fmt.Printf("Bloque %d generado y guardado.\n", i)
 	// }
 
-	block := generateBlock(1, "", transactions)
-	if err := saveBlock(db, block); err != nil {
-		log.Fatal(err)
-	}
-	if err := saveBlock(dbCache, block); err != nil {
-		log.Fatal(err)
+	//Comprueba si la db esta vacía para crear el bloque raiz
+
+	iter_check := db.NewIterator(nil, nil)
+	defer iter_check.Release()
+	empty := !iter_check.Next()
+	if empty {
+		//Bloque raiz con índice 1
+		block := generateBlock(1, "", transactions)
+		if err := saveBlock(db, block); err != nil {
+			log.Fatal(err)
+		}
+		if err := saveBlock(dbCache, block); err != nil {
+			log.Fatal(err)
+		}
+
 	}
 
 	nonce := 1
@@ -179,18 +188,18 @@ func main() {
 					Nonce:     nonce,
 				},
 			}
-			// Iterador para buscar el valor de nonce
+			// Iterador para buscar el valor de previous hash
 			iter_cache := dbCache.NewIterator(nil, nil)
 			var prev_hash string
 			var key_cache []byte
 			var value []byte
 			var block Block
-			if iter_cache.Last() {
-				value = iter_cache.Value()
-				key_cache = iter_cache.Key()
-				fmt.Printf("Valor del iterador con la funcion LAST: %s\n", value)
 
-			}
+			iter_cache.Next()
+			value = iter_cache.Value()
+			key_cache = iter_cache.Key()
+			//fmt.Printf("Valor del iterador con la funcion LAST: %s\n", value)
+
 			if err := json.Unmarshal(value, &block); err != nil {
 				log.Fatalf("Error al deserializar el bloque: %v", err)
 			}
