@@ -118,6 +118,41 @@ func getNewNonce(block Block) int {
 	return actNonce
 }
 
+func PrintBlockChain(db *leveldb.DB){
+    iter := db.NewIterator(nil, nil)
+    for iter.Next() {
+        // Remember that the contents of the returned slice should not be modified, and
+        // only valid until the next call to Next.
+        
+        value := iter.Value()
+        var block Block
+        if err := json.Unmarshal([]byte(value), &block); err != nil {
+            fmt.Printf("Error al deserializar el bloque: %v\n", err)
+            return
+        }
+        fmt.Printf("Index: %d\n", block.Index)
+        fmt.Printf("Timestamp: %d\n", block.Timestamp)
+        fmt.Println()
+        
+        for _, transaction := range block.Transactions {
+            fmt.Printf("Sender: %s\n", transaction.Sender)
+            fmt.Printf("Recipient: %s\n", transaction.Recipient)
+            fmt.Printf("Amount: %.2f\n", transaction.Amount)
+            fmt.Printf("Nonce: %d\n", transaction.Nonce)
+            fmt.Println() // Línea en blanco para separar las transacciones
+        }
+            
+        
+    
+        
+        fmt.Printf("PreviousHash: %s\n", block.PreviousHash)
+        fmt.Printf("Hash: %s\n", block.Hash)
+        fmt.Println("------------------------------------------")
+        
+    }
+    
+}
+
 func getFileName() string {
 	env := os.Getenv("ENV")
 	if len(env) == 0 {
@@ -142,7 +177,7 @@ func main() {
 	
 
 	transactions := []Transaction{
-		// Ejemplo 1
+		
 		{
             Sender:    configuration.RootSender,
             Recipient: configuration.RootRecipient,
@@ -195,7 +230,8 @@ func main() {
 		fmt.Println("Menú:")
 		fmt.Println("1. Hacer una transaccion")
 		fmt.Println("2. Leer transacción")
-		fmt.Println("3. Salir")
+        fmt.Println("3. Mostrar cadena de bloques")
+		fmt.Println("4. Salir")
 		fmt.Println("-----------------------------------")
 		// Leer la opción del usuario
 		var opcion int
@@ -293,12 +329,16 @@ func main() {
 			// Imprime los datos del bloque
 
 		case 3:
+            PrintBlockChain(db)
+        case 4:
 			fmt.Println("Saliendo del programa.")
 			defer dbCache.Close()
 			os.Exit(0) // Salir del programa
-		default:
+        
+        default:
 			fmt.Println("Opción no válida. Inténtalo de nuevo.")
 		}
+
 	}
 
 }
