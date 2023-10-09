@@ -5,15 +5,29 @@ import (
 	"encoding/hex"
 	"fmt"
 	"time"
-
+    "os"
+    "path"
+    "path/filepath"
 	"github.com/syndtr/goleveldb/leveldb"
+    "runtime"
+	"strings"
 
+	"github.com/tkanos/gonfig"
 	//"github.com/syndtr/goleveldb/leveldb/util"
 	"encoding/json"
 	"log"
-	"os"
+	
 	//"math/rand"
 )
+
+type Configuration struct {
+    DBPath          string `json:"DB_PATH"`
+    DBCachePath     string `json:"DB_CACHE_PATH"`
+    RootSender      string `json:"ROOT_SENDER"`
+    RootRecipient   string `json:"ROOT_RECIPIENT"`
+    RootAmount      float64 `json:"ROOT_AMOUNT"`
+    RootNonce       int `json:"ROOT_NONCE"`
+}
 
 type Transaction struct {
 	Sender    string
@@ -104,18 +118,40 @@ func getNewNonce(block Block) int {
 	return actNonce
 }
 
+func getFileName() string {
+	env := os.Getenv("ENV")
+	if len(env) == 0 {
+		env = "development"
+	}
+	filename := []string{"config/", "config.", env, ".json"}
+	_, dirname, _, _ := runtime.Caller(0)
+	filePath := path.Join(filepath.Dir(dirname), strings.Join(filename, ""))
+
+	return filePath
+}
+
 func main() {
+    configuration := Configuration{}
+	err := gonfig.GetConf(getFileName(), &configuration)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(500)
+	}
+
+	fmt.Println(configuration.RootSender)
+	
+
 	transactions := []Transaction{
 		// Ejemplo 1
 		{
-			Sender:    "Alice",
-			Recipient: "Bob",
-			Amount:    25.0,
-			Nonce:     1,
-		},
+            Sender:    configuration.RootSender,
+            Recipient: configuration.RootRecipient,
+            Amount:    configuration.RootAmount,
+            Nonce:     configuration.RootNonce,
+        },
 	}
-	dbPath := "./leveldb/"
-	dbPath_cache := "./leveldb/cache"
+	dbPath := configuration.DBPath
+	dbPath_cache := configuration.DBCachePath
 	// Abrir la base de datos (creará una si no existe)
 	db, err := leveldb.OpenFile(dbPath, nil)
 	if err != nil {
