@@ -14,12 +14,11 @@ import (
 
 	"github.com/syndtr/goleveldb/leveldb"
 
-	"github.com/tkanos/gonfig"
-	//"github.com/syndtr/goleveldb/leveldb/util"
 	"encoding/json"
 	"log"
 
-	//"math/rand"
+	"github.com/tkanos/gonfig"
+
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -122,9 +121,6 @@ func PrintBlockData(block Block) {
 func PrintBlockChain(db *leveldb.DB) {
 	iter := db.NewIterator(nil, nil)
 	for iter.Next() {
-		// Remember that the contents of the returned slice should not be modified, and
-		// only valid until the next call to Next.
-
 		value := iter.Value()
 		var block Block
 		if err := json.Unmarshal([]byte(value), &block); err != nil {
@@ -141,7 +137,7 @@ func PrintBlockChain(db *leveldb.DB) {
 			fmt.Printf("Amount: %.2f\n", transaction.Amount)
 			fmt.Printf("Nonce: %d\n", transaction.Nonce)
 			fmt.Printf("Signature: %d\n", transaction.Signature)
-			fmt.Println() // Línea en blanco para separar las transacciones
+			fmt.Println()
 		}
 
 		fmt.Printf("PreviousHash: %s\n", block.PreviousHash)
@@ -249,6 +245,7 @@ func main() {
 	fmt.Println(configuration.RootSender)
 	dbPath := configuration.DBPath
 	dbPath_cache := configuration.DBCachePath
+
 	// Abrir la base de datos (creará una si no existe)
 	db, err := leveldb.OpenFile(dbPath, nil)
 	if err != nil {
@@ -269,22 +266,13 @@ func main() {
 			Nonce:     configuration.RootNonce,
 		},
 	}
-	//boque raiz
-	// for i := 1; i <= 20; i++ {
-	// 	block := generateBlock(i, "", transactions)
-	// 	if err := saveBlock(db, block); err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	fmt.Printf("Bloque %d generado y guardado.\n", i)
-	// }
-
-	//Comprueba si la db esta vacía para crear el bloque raiz
 
 	iter_check := db.NewIterator(nil, nil)
 	defer iter_check.Release()
 	empty := !iter_check.Next()
 	if empty {
-		//Bloque raiz con índice 1
+
+		//Se crea el bloque raíz con índice 1, previous hash "" y una transacción con información contenida en el config file
 		block := generateBlock(1, "", transactions)
 		if err := saveBlock(db, block); err != nil {
 			log.Fatal(err)
@@ -295,7 +283,7 @@ func main() {
 
 	}
 
-	//HARCODE DE USUARIO
+	//Los usuarios se "Hardcodean" para mostrar el funcionamiento de las firmas
 	usuario1 := "Bob"
 	privKey1, pubKey1, mnemonic1, err := generarClaves(usuario1)
 	if err != nil {
@@ -332,7 +320,7 @@ func main() {
 			continue
 		}
 
-		// Procesar la opción seleccionada
+		// Cases para cada una de las opciones
 		switch opcion {
 		case 1:
 			fmt.Println("---INICIO--TRANSACCION---")
@@ -382,9 +370,7 @@ func main() {
 				}
 			}
 
-			// Aquí puedes establecer el valor del nonce como 1, ya que no se solicita al usuario.
-
-			// Iterador para buscar el valor de previous hash
+			// Iterador para buscar el valor de previous hash dentro de la base de datos cache
 			iter_cache := dbCache.NewIterator(nil, nil)
 			var prev_hash string
 			var key_cache []byte
@@ -394,15 +380,13 @@ func main() {
 			iter_cache.Next()
 			value = iter_cache.Value()
 			key_cache = iter_cache.Key()
-			//fmt.Printf("Valor del iterador con la funcion LAST: %s\n", value)
 
 			if err := json.Unmarshal(value, &block); err != nil {
 				log.Fatalf("Error al deserializar el bloque: %v", err)
 			}
-			fmt.Println("este es el bloque sacado desde leveldb:")
 
 			nonce := block.Transactions[0].Nonce
-			//fmt.Print(nonce)
+
 			transaction := []Transaction{
 				{
 					Sender:    sender,
@@ -431,14 +415,14 @@ func main() {
 			}
 
 			prev_hash = block.Hash
-			fmt.Print(prev_hash, "\n")
+
 			iter_cache.Release()
 			if iter_cache.Error() != nil {
 				log.Fatalf("Error al iterar a través de LevelDB: %v", iter_cache.Error())
 			}
 			nextIndex := block.Index + 1
 			block = generateBlock(nextIndex, prev_hash, transaction)
-			//fmt.Printf("%s", key_cache)
+
 			err = dbCache.Delete(key_cache, nil)
 			if err != nil {
 				log.Printf("Error deleting key %s: %v", key_cache, err)
@@ -467,10 +451,12 @@ func main() {
 			} else {
 				fmt.Println("Bloque cargado desde la base de datos.")
 				bloque := *block
+				PrintBlockData(bloque)
 				trans := &bloque.Transactions[0]
 				validacion1 := verificarFirma(pubKey1, obtenerHashTransaccion(trans), bloque.Transactions[0].Signature)
 				validacion2 := verificarFirma(pubKey2, obtenerHashTransaccion(trans), bloque.Transactions[0].Signature)
-
+				fmt.Print(validacion1)
+				fmt.Print(validacion2)
 				if validacion1 {
 					fmt.Println("La firma es válida y fue firmado por Bob.")
 				} else if validacion2 {
@@ -486,8 +472,7 @@ func main() {
 		case 4:
 			fmt.Println("Saliendo del programa.")
 			defer dbCache.Close()
-			os.Exit(0) // Salir del programa
-
+			os.Exit(0)
 		default:
 			fmt.Println("Opción no válida. Inténtalo de nuevo.")
 		}
@@ -495,6 +480,3 @@ func main() {
 	}
 
 }
-
-//como buscar el bloque anterior para hashearlo y entregarlo al nuevo bloque? se busca por indice?
-//como crear el bloque raiz
