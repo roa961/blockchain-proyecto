@@ -19,6 +19,5 @@ En el repositorio es posible encontrar la entrega N°1 del proyecto semestral. E
 - Leer una transacción existente
 - Mostrar cadena de bloques (todos los bloques ya creados)
 
-Cada una de las transacciones está firmada con la llave privada que se generó a la hora de realizar la transacción.
 
 
