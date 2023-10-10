@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -17,7 +18,14 @@ import (
 	//"github.com/syndtr/goleveldb/leveldb/util"
 	"encoding/json"
 	"log"
+
 	//"math/rand"
+	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"math/big"
+
+	"github.com/tyler-smith/go-bip39"
 )
 
 type Configuration struct {
@@ -34,6 +42,7 @@ type Transaction struct {
 	Recipient string
 	Amount    float64
 	Nonce     int
+	Signature []byte
 }
 
 type Block struct {
@@ -105,6 +114,7 @@ func PrintBlockData(block Block) {
 		fmt.Printf("    Recipient: %s\n", tx.Recipient)
 		fmt.Printf("    Amount: %.2f\n", tx.Amount)
 		fmt.Printf("    Nonce: %d\n", tx.Nonce)
+		fmt.Printf("    Signature: %d\n", tx.Signature)
 
 	}
 }
@@ -130,6 +140,7 @@ func PrintBlockChain(db *leveldb.DB) {
 			fmt.Printf("Recipient: %s\n", transaction.Recipient)
 			fmt.Printf("Amount: %.2f\n", transaction.Amount)
 			fmt.Printf("Nonce: %d\n", transaction.Nonce)
+			fmt.Printf("Signature: %d\n", transaction.Signature)
 			fmt.Println() // Línea en blanco para separar las transacciones
 		}
 
@@ -152,6 +163,80 @@ func getFileName() string {
 
 	return filePath
 }
+func obtenerHashTransaccion(transaccion *Transaction) []byte {
+	data := fmt.Sprintf("%s%s%f%d", transaccion.Sender, transaccion.Recipient, transaccion.Amount, transaccion.Nonce)
+	h := sha256.New()
+	h.Write([]byte(data))
+	return h.Sum(nil)
+}
+
+func generarClaves(usuario string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string, error) {
+
+	db, err := leveldb.OpenFile("./leveldb/keys", nil)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	defer db.Close()
+
+	entropy, _ := bip39.NewEntropy(128)
+	mnemonic, _ := bip39.NewMnemonic(entropy)
+	seed := bip39.NewSeed(mnemonic, "")
+	seedReader := bytes.NewReader(seed)
+	privKey, _ := ecdsa.GenerateKey(elliptic.P256(), seedReader)
+	pubKey := &privKey.PublicKey
+
+	err = db.Put([]byte(usuario+"_mnemonic"), []byte(mnemonic), nil)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	privKeyBytes := privKey.D.Bytes()
+	err = db.Put([]byte(usuario+"_priv"), privKeyBytes, nil)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	pubKeyBytes := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
+	err = db.Put([]byte(usuario+"_pub"), pubKeyBytes, nil)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	mnemonicBytes, err := db.Get([]byte(usuario+"_mnemonic"), nil)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	mnemonicStr := string(mnemonicBytes)
+
+	privKeyBytes, err = db.Get([]byte(usuario+"_priv"), nil)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	privKey.D.SetBytes(privKeyBytes)
+
+	pubKeyBytes, err = db.Get([]byte(usuario+"_pub"), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	pubKey.X, pubKey.Y = elliptic.Unmarshal(pubKey.Curve, pubKeyBytes)
+	return privKey, pubKey, mnemonicStr, nil
+}
+func firmarTransaccion(privKey *ecdsa.PrivateKey, transaccion *Transaction) {
+	hash := obtenerHashTransaccion(transaccion)
+	r, s, err := ecdsa.Sign(rand.Reader, privKey, hash)
+	if err != nil {
+		log.Fatal(err)
+	}
+	signature := append(r.Bytes(), s.Bytes()...)
+	transaccion.Signature = signature
+
+}
+
+func verificarFirma(pubKey *ecdsa.PublicKey, mensaje []byte, firma []byte) bool {
+	r := new(big.Int)
+	s := new(big.Int)
+	r.SetBytes(firma[:len(firma)/2])
+	s.SetBytes(firma[len(firma)/2:])
+	return ecdsa.Verify(pubKey, mensaje, r, s)
+}
 
 func main() {
 	configuration := Configuration{}
@@ -162,16 +247,6 @@ func main() {
 	}
 
 	fmt.Println(configuration.RootSender)
-
-	transactions := []Transaction{
-
-		{
-			Sender:    configuration.RootSender,
-			Recipient: configuration.RootRecipient,
-			Amount:    configuration.RootAmount,
-			Nonce:     configuration.RootNonce,
-		},
-	}
 	dbPath := configuration.DBPath
 	dbPath_cache := configuration.DBCachePath
 	// Abrir la base de datos (creará una si no existe)
@@ -185,6 +260,15 @@ func main() {
 		log.Fatal(err)
 	}
 	defer dbCache.Close()
+	transactions := []Transaction{
+
+		{
+			Sender:    configuration.RootSender,
+			Recipient: configuration.RootRecipient,
+			Amount:    configuration.RootAmount,
+			Nonce:     configuration.RootNonce,
+		},
+	}
 	//boque raiz
 	// for i := 1; i <= 20; i++ {
 	// 	block := generateBlock(i, "", transactions)
@@ -211,6 +295,25 @@ func main() {
 
 	}
 
+	//HARCODE DE USUARIO
+	usuario1 := "Bob"
+	privKey1, pubKey1, mnemonic1, err := generarClaves(usuario1)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if mnemonic1 == "" {
+		fmt.Println("No se encontró el mnemónico.")
+	}
+
+	usuario2 := "Alice"
+	privKey2, pubKey2, mnemonic2, err := generarClaves(usuario2)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if mnemonic2 == "" {
+		fmt.Println("No se encontró el mnemónico.")
+	}
+
 	for {
 		// Mostrar el menú
 		fmt.Println("----------MENÚ-BLOCKCHAIN----------")
@@ -233,17 +336,51 @@ func main() {
 		switch opcion {
 		case 1:
 			fmt.Println("---INICIO--TRANSACCION---")
-			var sender, recipient string
+			var remitente, destinatario int
 			var amount float64
+			var sender, recipient string
 
-			fmt.Print("Ingrese el remitente: ")
-			fmt.Scan(&sender)
+			fmt.Println("Ingrese el remitente")
+			fmt.Println("1 Bob")
+			fmt.Println("2 Alice")
+			_, err := fmt.Scan(&remitente)
+			if err != nil {
+				fmt.Println("Error al leer el remitente:", err)
+				continue
+			}
 
-			fmt.Print("Ingrese el destinatario: ")
-			fmt.Scan(&recipient)
+			switch remitente {
+			case 1:
+				sender = usuario1
+				fmt.Println("Ingrese el destinatario:")
+				fmt.Println("1 Alice")
+				fmt.Scan(&destinatario)
 
-			fmt.Print("Ingrese el monto: ")
-			fmt.Scan(&amount)
+				if destinatario == 1 {
+					recipient = usuario2
+					fmt.Println("Ingrese el monto: ")
+					fmt.Scan(&amount)
+
+				} else {
+					fmt.Println("Error al leer destinatario")
+					continue
+
+				}
+			case 2:
+				sender = usuario2
+				fmt.Println("Ingrese el destinatario:")
+				fmt.Println("1 Bob")
+				fmt.Scan(&destinatario)
+				if destinatario == 1 {
+					recipient = usuario1
+					fmt.Println("Ingrese el monto: ")
+					fmt.Scan(&amount)
+
+				} else {
+					fmt.Println("Error al leer destinatario")
+					continue
+				}
+			}
 
 			// Aquí puedes establecer el valor del nonce como 1, ya que no se solicita al usuario.
 
@@ -274,6 +411,24 @@ func main() {
 					Nonce:     nonce + 1,
 				},
 			}
+			if destinatario == 1 {
+				firmarTransaccion(privKey1, &transaction[0])
+				esValida := verificarFirma(pubKey1, obtenerHashTransaccion(&transaction[0]), transaction[0].Signature)
+				if esValida {
+					fmt.Println("La firma es válida y fue firmado por Bob.")
+				} else {
+					fmt.Println("La firma es inválida.")
+				}
+
+			} else if destinatario == 2 {
+				firmarTransaccion(privKey2, &transaction[0])
+				esValida := verificarFirma(pubKey2, obtenerHashTransaccion(&transaction[0]), transaction[0].Signature)
+				if esValida {
+					fmt.Println("La firma es válida y fue firmado por Alice.")
+				} else {
+					fmt.Println("La firma es inválida.")
+				}
+			}
 
 			prev_hash = block.Hash
 			fmt.Print(prev_hash, "\n")
@@ -284,7 +439,7 @@ func main() {
 			nextIndex := block.Index + 1
 			block = generateBlock(nextIndex, prev_hash, transaction)
 			//fmt.Printf("%s", key_cache)
-			err := dbCache.Delete(key_cache, nil)
+			err = dbCache.Delete(key_cache, nil)
 			if err != nil {
 				log.Printf("Error deleting key %s: %v", key_cache, err)
 			}
@@ -311,7 +466,18 @@ func main() {
 				log.Printf("Error al cargar el bloque: %v", err)
 			} else {
 				fmt.Println("Bloque cargado desde la base de datos.")
-				PrintBlockData(*block)
+				bloque := *block
+				trans := &bloque.Transactions[0]
+				validacion1 := verificarFirma(pubKey1, obtenerHashTransaccion(trans), bloque.Transactions[0].Signature)
+				validacion2 := verificarFirma(pubKey2, obtenerHashTransaccion(trans), bloque.Transactions[0].Signature)
+
+				if validacion1 {
+					fmt.Println("La firma es válida y fue firmado por Bob.")
+				} else if validacion2 {
+					fmt.Println("La firma es válida y fue firmado por Alice.")
+				} else {
+					fmt.Println("La firma es inválida.")
+				}
 			}
 			// Imprime los datos del bloque
 
