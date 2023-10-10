@@ -4,29 +4,29 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"time"
-    "os"
-    "path"
-    "path/filepath"
-	"github.com/syndtr/goleveldb/leveldb"
-    "runtime"
+	"os"
+	"path"
+	"path/filepath"
+	"runtime"
 	"strings"
+	"time"
+
+	"github.com/syndtr/goleveldb/leveldb"
 
 	"github.com/tkanos/gonfig"
 	//"github.com/syndtr/goleveldb/leveldb/util"
 	"encoding/json"
 	"log"
-	
 	//"math/rand"
 )
 
 type Configuration struct {
-    DBPath          string `json:"DB_PATH"`
-    DBCachePath     string `json:"DB_CACHE_PATH"`
-    RootSender      string `json:"ROOT_SENDER"`
-    RootRecipient   string `json:"ROOT_RECIPIENT"`
-    RootAmount      float64 `json:"ROOT_AMOUNT"`
-    RootNonce       int `json:"ROOT_NONCE"`
+	DBPath        string  `json:"DB_PATH"`
+	DBCachePath   string  `json:"DB_CACHE_PATH"`
+	RootSender    string  `json:"ROOT_SENDER"`
+	RootRecipient string  `json:"ROOT_RECIPIENT"`
+	RootAmount    float64 `json:"ROOT_AMOUNT"`
+	RootNonce     int     `json:"ROOT_NONCE"`
 }
 
 type Transaction struct {
@@ -109,48 +109,36 @@ func PrintBlockData(block Block) {
 	}
 }
 
-func getNewNonce(block Block) int {
-	var actNonce int
-	for i, tx := range block.Transactions {
-		actNonce = tx.Nonce + i
+func PrintBlockChain(db *leveldb.DB) {
+	iter := db.NewIterator(nil, nil)
+	for iter.Next() {
+		// Remember that the contents of the returned slice should not be modified, and
+		// only valid until the next call to Next.
+
+		value := iter.Value()
+		var block Block
+		if err := json.Unmarshal([]byte(value), &block); err != nil {
+			fmt.Printf("Error al deserializar el bloque: %v\n", err)
+			return
+		}
+		fmt.Printf("Index: %d\n", block.Index)
+		fmt.Printf("Timestamp: %d\n", block.Timestamp)
+		fmt.Println()
+
+		for _, transaction := range block.Transactions {
+			fmt.Printf("Sender: %s\n", transaction.Sender)
+			fmt.Printf("Recipient: %s\n", transaction.Recipient)
+			fmt.Printf("Amount: %.2f\n", transaction.Amount)
+			fmt.Printf("Nonce: %d\n", transaction.Nonce)
+			fmt.Println() // Línea en blanco para separar las transacciones
+		}
+
+		fmt.Printf("PreviousHash: %s\n", block.PreviousHash)
+		fmt.Printf("Hash: %s\n", block.Hash)
+		fmt.Println("------------------------------------------")
+
 	}
 
-	return actNonce
-}
-
-func PrintBlockChain(db *leveldb.DB){
-    iter := db.NewIterator(nil, nil)
-    for iter.Next() {
-        // Remember that the contents of the returned slice should not be modified, and
-        // only valid until the next call to Next.
-        
-        value := iter.Value()
-        var block Block
-        if err := json.Unmarshal([]byte(value), &block); err != nil {
-            fmt.Printf("Error al deserializar el bloque: %v\n", err)
-            return
-        }
-        fmt.Printf("Index: %d\n", block.Index)
-        fmt.Printf("Timestamp: %d\n", block.Timestamp)
-        fmt.Println()
-        
-        for _, transaction := range block.Transactions {
-            fmt.Printf("Sender: %s\n", transaction.Sender)
-            fmt.Printf("Recipient: %s\n", transaction.Recipient)
-            fmt.Printf("Amount: %.2f\n", transaction.Amount)
-            fmt.Printf("Nonce: %d\n", transaction.Nonce)
-            fmt.Println() // Línea en blanco para separar las transacciones
-        }
-            
-        
-    
-        
-        fmt.Printf("PreviousHash: %s\n", block.PreviousHash)
-        fmt.Printf("Hash: %s\n", block.Hash)
-        fmt.Println("------------------------------------------")
-        
-    }
-    
 }
 
 func getFileName() string {
@@ -166,7 +154,7 @@ func getFileName() string {
 }
 
 func main() {
-    configuration := Configuration{}
+	configuration := Configuration{}
 	err := gonfig.GetConf(getFileName(), &configuration)
 	if err != nil {
 		fmt.Println(err)
@@ -174,16 +162,15 @@ func main() {
 	}
 
 	fmt.Println(configuration.RootSender)
-	
 
 	transactions := []Transaction{
-		
+
 		{
-            Sender:    configuration.RootSender,
-            Recipient: configuration.RootRecipient,
-            Amount:    configuration.RootAmount,
-            Nonce:     configuration.RootNonce,
-        },
+			Sender:    configuration.RootSender,
+			Recipient: configuration.RootRecipient,
+			Amount:    configuration.RootAmount,
+			Nonce:     configuration.RootNonce,
+		},
 	}
 	dbPath := configuration.DBPath
 	dbPath_cache := configuration.DBCachePath
@@ -230,7 +217,7 @@ func main() {
 		fmt.Println("Menú:")
 		fmt.Println("1. Hacer una transaccion")
 		fmt.Println("2. Leer transacción")
-        fmt.Println("3. Mostrar cadena de bloques")
+		fmt.Println("3. Mostrar cadena de bloques")
 		fmt.Println("4. Salir")
 		fmt.Println("-----------------------------------")
 		// Leer la opción del usuario
@@ -329,13 +316,13 @@ func main() {
 			// Imprime los datos del bloque
 
 		case 3:
-            PrintBlockChain(db)
-        case 4:
+			PrintBlockChain(db)
+		case 4:
 			fmt.Println("Saliendo del programa.")
 			defer dbCache.Close()
 			os.Exit(0) // Salir del programa
-        
-        default:
+
+		default:
 			fmt.Println("Opción no válida. Inténtalo de nuevo.")
 		}
 
