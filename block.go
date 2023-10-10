@@ -455,8 +455,6 @@ func main() {
 				trans := &bloque.Transactions[0]
 				validacion1 := verificarFirma(pubKey1, obtenerHashTransaccion(trans), bloque.Transactions[0].Signature)
 				validacion2 := verificarFirma(pubKey2, obtenerHashTransaccion(trans), bloque.Transactions[0].Signature)
-				fmt.Print(validacion1)
-				fmt.Print(validacion2)
 				if validacion1 {
 					fmt.Println("La firma es válida y fue firmado por Bob.")
 				} else if validacion2 {
