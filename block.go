@@ -18,10 +18,13 @@ import (
 	//"github.com/syndtr/goleveldb/leveldb/util"
 	"encoding/json"
 	"log"
-
+    "crypto/ecdsa"
+	"crypto/x509"
+	"encoding/pem"
+    
 	//"math/rand"
 	"bytes"
-	"crypto/ecdsa"
+	
 	"crypto/elliptic"
 	"math/big"
 
@@ -45,12 +48,40 @@ type Transaction struct {
 	Signature []byte
 }
 
+type UserData struct {
+	Mnemonic  string
+	PrivateKey []byte
+	PublicKey  []byte
+}
+
 type Block struct {
 	Index        int
 	Timestamp    int64
 	Transactions []Transaction
 	PreviousHash string
 	Hash         string
+}
+
+func bytesToECDSAPublicKey(publicKeyBytes []byte) (*ecdsa.PublicKey, error) {
+    // Parsear el bloque PEM
+    block, _ := pem.Decode(publicKeyBytes)
+    if block == nil {
+        return nil, fmt.Errorf("No se pudo decodificar el bloque PEM")
+    }
+
+    // Convertir los bytes de la clave pública en un *ecdsa.PublicKey
+    publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+    if err != nil {
+        return nil, err
+    }
+
+    // Verificar que el tipo sea *ecdsa.PublicKey
+    ecdsaPublicKey, ok := publicKey.(*ecdsa.PublicKey)
+    if !ok {
+        return nil, fmt.Errorf("La clave no es un ECDSA PublicKey")
+    }
+
+    return ecdsaPublicKey, nil
 }
 
 func saveBlock(db *leveldb.DB, block Block) error {
@@ -170,13 +201,9 @@ func obtenerHashTransaccion(transaccion *Transaction) []byte {
 	return h.Sum(nil)
 }
 
-func generarClaves(usuario string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string, error) {
+func generarClaves(usuario string, db *leveldb.DB) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string, error) {
 
-	db, err := leveldb.OpenFile("./leveldb/keys", nil)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	defer db.Close()
+    
 
 	entropy, _ := bip39.NewEntropy(128)
 	mnemonic, _ := bip39.NewMnemonic(entropy)
@@ -184,22 +211,26 @@ func generarClaves(usuario string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string,
 	seedReader := bytes.NewReader(seed)
 	privKey, _ := ecdsa.GenerateKey(elliptic.P256(), seedReader)
 	pubKey := &privKey.PublicKey
+    privKeyBytes := privKey.D.Bytes()
+    pubKeyBytes := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
+    userData := UserData{
+		Mnemonic:  mnemonic,
+		PrivateKey: privKeyBytes,
+		PublicKey:  pubKeyBytes,
+       
+	}
+    userDataJson, err := json.Marshal(userData)
+    db.Put([]byte(usuario),userDataJson,nil)
+	// db.Put([]byte(usuario+"_mnemonic"), []byte(mnemonic), nil)
+	
 
-	err = db.Put([]byte(usuario+"_mnemonic"), []byte(mnemonic), nil)
-	if err != nil {
-		return nil, nil, "", err
-	}
+	// privKeyBytes := privKey.D.Bytes()
+	// db.Put([]byte(usuario+"_priv"), privKeyBytes, nil)
+	
+	// pubKeyBytes := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
+	// db.Put([]byte(usuario+"_pub"), pubKeyBytes, nil)
 
-	privKeyBytes := privKey.D.Bytes()
-	err = db.Put([]byte(usuario+"_priv"), privKeyBytes, nil)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	pubKeyBytes := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
-	err = db.Put([]byte(usuario+"_pub"), pubKeyBytes, nil)
-	if err != nil {
-		return nil, nil, "", err
-	}
+	
 	mnemonicBytes, err := db.Get([]byte(usuario+"_mnemonic"), nil)
 	if err != nil {
 		return nil, nil, "", err
@@ -217,6 +248,9 @@ func generarClaves(usuario string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string,
 		log.Fatal(err)
 	}
 	pubKey.X, pubKey.Y = elliptic.Unmarshal(pubKey.Curve, pubKeyBytes)
+    // fmt.Println(privKey)
+    // fmt.Println(mnemonicStr)
+    // fmt.Println(pubKey)
 	return privKey, pubKey, mnemonicStr, nil
 }
 func firmarTransaccion(privKey *ecdsa.PrivateKey, transaccion *Transaction) {
@@ -246,7 +280,7 @@ func main() {
 		os.Exit(500)
 	}
 
-	fmt.Println(configuration.RootSender)
+	
 	dbPath := configuration.DBPath
 	dbPath_cache := configuration.DBCachePath
 	// Abrir la base de datos (creará una si no existe)
@@ -255,11 +289,18 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+
 	dbCache, err := leveldb.OpenFile(dbPath_cache, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer dbCache.Close()
+
+
+    dbkeys, err := leveldb.OpenFile("./leveldb/keys", nil)
+	defer dbkeys.Close()
+
+
 	transactions := []Transaction{
 
 		{
@@ -296,23 +337,73 @@ func main() {
 	}
 
 	//HARCODE DE USUARIO
-	usuario1 := "Bob"
-	privKey1, pubKey1, mnemonic1, err := generarClaves(usuario1)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if mnemonic1 == "" {
-		fmt.Println("No se encontró el mnemónico.")
-	}
+    usuario1 := "Bob"
+    usuario2 := "Alice"
+    var privKey1 *ecdsa.PrivateKey
+    var pubKey1 *ecdsa.PublicKey
+    var mnemonic1 string
+    var privKey2 *ecdsa.PrivateKey
+    var pubKey2 *ecdsa.PublicKey
+    var mnemonic2 string
+    //var userData1 UserData
+    var userData2 UserData
 
-	usuario2 := "Alice"
-	privKey2, pubKey2, mnemonic2, err := generarClaves(usuario2)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if mnemonic2 == "" {
-		fmt.Println("No se encontró el mnemónico.")
-	}
+
+    iter_keys_xd :=dbkeys.NewIterator(nil, nil)
+    iter_keys := dbkeys.NewIterator(nil, nil)
+    if (iter_keys_xd.Next()){
+        
+        for iter_keys.Next() {
+            // Remember that the contents of the returned slice should not be modified, and
+            // only valid until the next call to Next.
+    
+            key := iter_keys.Key()
+            string_value := string(key)
+            if(string_value=="Alice"){
+                
+                value := iter_keys.Value()
+                if err := json.Unmarshal([]byte(value), &userData2); err != nil {
+                    fmt.Printf("Error al deserializar el bloque: %v\n", err)
+                    return
+                }
+
+                mnemonic2= userData2.Mnemonic
+                fmt.Println(userData2.PublicKey)
+                publicKey, err := bytesToECDSAPublicKey(userData2.PublicKey)
+                if err != nil {
+                    log.Fatal(err)
+                }
+                fmt.Println(publicKey)
+
+                
+                
+            }
+            
+
+        }
+    }
+    privKey1, pubKey1, mnemonic1, err = generarClaves(usuario1,dbkeys)
+        if err != nil {
+            log.Fatal(err)
+        }
+        if mnemonic1 == "" {
+            fmt.Println("No se encontró el mnemónico.")
+        }
+
+        
+        privKey2, pubKey2, mnemonic2,err = generarClaves(usuario2,dbkeys)
+        if err != nil {
+            log.Fatal(err)
+        }
+        if mnemonic2 == "" {
+            fmt.Println("No se encontró el mnemónico.")
+        }
+	
+
+	
+    
+
+    
 
 	for {
 		// Mostrar el menú
@@ -467,6 +558,7 @@ func main() {
 			} else {
 				fmt.Println("Bloque cargado desde la base de datos.")
 				bloque := *block
+                PrintBlockData(bloque)
 				trans := &bloque.Transactions[0]
 				validacion1 := verificarFirma(pubKey1, obtenerHashTransaccion(trans), bloque.Transactions[0].Signature)
 				validacion2 := verificarFirma(pubKey2, obtenerHashTransaccion(trans), bloque.Transactions[0].Signature)
