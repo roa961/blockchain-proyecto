@@ -242,7 +242,6 @@ func main() {
 		os.Exit(500)
 	}
 
-	fmt.Println(configuration.RootSender)
 	dbPath := configuration.DBPath
 	dbPath_cache := configuration.DBCachePath
 
