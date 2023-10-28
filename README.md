@@ -20,17 +20,16 @@ En el repositorio es posible encontrar la entrega N°1 del proyecto semestral. E
 - **Mostrar cadena de bloques**: En esta opción se puede mostrar la opción asociada a cada bloque, de manera secuencial.
 
 ## Dependencias
+Para poder iniciar el programa, se debe ingresar el siguiente comando en la carpeta raiz del proyecto para crear un nuevo módulo:
+```bash
+go mod init blockchain-proyecto
+```
+De esta manera se hace un seguimiento de las dependencias que posea el programa.
+
+Luego se ingresa el siguiente comando para instalar las dependencias:
 
 ```bash
-go get github.com/syndtr/goleveldb/leveldb
-```
-
-```bash
-go get github.com/tkanos/gonfig
-```
-	
-```bash
-go get github.com/tyler-smith/go-bip3
+go mod tidy
 ```
 
 ## Instrucciones de uso
@@ -38,7 +37,7 @@ go get github.com/tyler-smith/go-bip3
 Para ejecutar el código se debe utilizar el comando:
 
 ```bash
-go run block.go
+go run main.go
 ```
 Se despliega un menú, del cual se debe elegir una de las opciones mostradas.
 
