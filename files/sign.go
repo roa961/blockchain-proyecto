@@ -9,16 +9,12 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
 	"github.com/syndtr/goleveldb/leveldb"
-
 	"log"
-
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"math/big"
-
 	"github.com/tyler-smith/go-bip39"
 )
 
@@ -33,6 +29,7 @@ func GetFileName() string {
 
 	return filePath
 }
+
 func ObtenerHashTransaccion(transaccion *Transaction) []byte {
 	data := fmt.Sprintf("%s%s%f%d", transaccion.Sender, transaccion.Recipient, transaccion.Amount, transaccion.Nonce)
 	h := sha256.New()

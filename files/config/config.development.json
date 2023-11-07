@@ -1,6 +1,7 @@
 {
     "DB_PATH": "./leveldb/",
     "DB_CACHE_PATH": "./leveldb/cache",
+    "DB_ACCOUNTS_PATH":"./leveldb/accounts",
     "ROOT_SENDER":"ROOT_SENDER",
     "ROOT_RECIPIENT":"ROOT_RECIPIENT",
     "ROOT_AMOUNT":0,
