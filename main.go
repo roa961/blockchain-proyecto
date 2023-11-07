@@ -3,15 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
-
 	"github.com/syndtr/goleveldb/leveldb"
-
 	"encoding/json"
 	"log"
-
 	"blockchain-proyecto/files"
-
 	"github.com/tkanos/gonfig"
+	
 )
 
 func main() {
@@ -24,6 +21,9 @@ func main() {
 
 	dbPath := configuration.DBPath
 	dbPath_cache := configuration.DBCachePath
+	dbPath_accounts :=configuration.DBAccountsPath
+
+
 
 	// Abrir la base de datos (creará una si no existe)
 	db, err := leveldb.OpenFile(dbPath, nil)
@@ -36,6 +36,13 @@ func main() {
 		log.Fatal(err)
 	}
 	defer dbCache.Close()
+	dbAccounts, err := leveldb.OpenFile(dbPath_accounts, nil)
+		
+		if err != nil {
+			log.Fatal(err)
+		}
+	defer dbAccounts.Close()
+	
 	transactions := []files.Transaction{
 
 		{
@@ -61,7 +68,11 @@ func main() {
 		}
 
 	}
-
+	
+	
+	files.Login(dbAccounts)
+	files.ShowAllData(dbAccounts)
+	
 	//Los usuarios se "Hardcodean" para mostrar el funcionamiento de las firmas
 	usuario1 := "Bob"
 	privKey1, pubKey1, mnemonic1, err := files.GenerarClaves(usuario1)
@@ -74,6 +85,10 @@ func main() {
 
 	usuario2 := "Alice"
 	privKey2, pubKey2, mnemonic2, err := files.GenerarClaves(usuario2)
+	//fmt.println("esta es la llave publica y pribada de alice")
+	fmt.Println("Private Key:", privKey2)
+	fmt.Println("Public Key:", pubKey2)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,7 +101,7 @@ func main() {
 		fmt.Println("----------MENÚ-BLOCKCHAIN----------")
 		fmt.Println("Menú:")
 		fmt.Println("1. Hacer una transaccion")
-		fmt.Println("2. Leer transacción")
+		fmt.Println("2. Leer transacción") 
 		fmt.Println("3. Mostrar cadena de bloques")
 		fmt.Println("4. Salir")
 		fmt.Println("-----------------------------------")

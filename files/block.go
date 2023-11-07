@@ -15,6 +15,7 @@ type Configuration struct {
 	RootRecipient string  `json:"ROOT_RECIPIENT"`
 	RootAmount    float64 `json:"ROOT_AMOUNT"`
 	RootNonce     int     `json:"ROOT_NONCE"`
+	DBAccountsPath string `json:"DB_ACCOUNTS_PATH"`
 }
 
 type Transaction struct {
