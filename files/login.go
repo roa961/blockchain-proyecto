@@ -1,22 +1,23 @@
 package files
 
 import (
-	"fmt"
-	"github.com/syndtr/goleveldb/leveldb"
 	"crypto/ecdsa"
+	"fmt"
+
+	"github.com/syndtr/goleveldb/leveldb"
+
 	// "os"
 	// "github.com/tkanos/gonfig"
-	"log"
 	"encoding/json"
+	"log"
 )
 
-
-type Account struct{
-	PublicKey *ecdsa.PublicKey
-	PrivateKey *ecdsa.PrivateKey
-	Mnemonic string
-	Name string
-	Amount float64
+type Account struct {
+	PublicKey    *ecdsa.PublicKey
+	PrivateKey   *ecdsa.PrivateKey
+	Mnemonic     string
+	Name         string
+	Amount       float64
 	Transactions float64
 }
 
@@ -34,7 +35,7 @@ func Login(db *leveldb.DB) {
 		fmt.Println("CREAR CUENTA")
 		fmt.Print("Ingrese su nombre: ")
 		fmt.Scanln(&name)
-		privKey, pubKey, mnemonic, err := GenerarClaves(name)
+		privKey, pubKey, mnemonic, err := GenerateKeys(name)
 		if err != nil {
 			fmt.Println("Error:", err)
 		} else {
@@ -46,24 +47,21 @@ func Login(db *leveldb.DB) {
 		account := Account{
 			PublicKey:    pubKey,
 			PrivateKey:   privKey,
-			Mnemonic: mnemonic,
+			Mnemonic:     mnemonic,
 			Name:         name,
 			Amount:       0,
 			Transactions: 0,
 		}
-		
+
 		data, err := json.Marshal(account)
 		if err != nil {
 			log.Fatal(err)
 		}
-		
 
 		err = db.Put([]byte(account.Name), data, nil)
 		if err != nil {
 			log.Fatal(err)
 		}
-		
-		
 
 	case 2:
 		fmt.Println("IDENTIFICARSE")
@@ -75,15 +73,14 @@ func Login(db *leveldb.DB) {
 	}
 }
 
-
-// func saveAccount(db *leveldb.DB, account Account) error {
-// 	data, err := json.Marshal(account)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	err = db.Put([]byte(username), data, nil)
-// 	return err
-// }
+//	func saveAccount(db *leveldb.DB, account Account) error {
+//		data, err := json.Marshal(account)
+//		if err != nil {
+//			return err
+//		}
+//		err = db.Put([]byte(username), data, nil)
+//		return err
+//	}
 func ShowAllData(db *leveldb.DB) {
 	iter := db.NewIterator(nil, nil)
 	for iter.Next() {
@@ -97,5 +94,3 @@ func ShowAllData(db *leveldb.DB) {
 		log.Fatal(err)
 	}
 }
-
-
