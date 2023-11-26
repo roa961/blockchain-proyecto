@@ -1,20 +1,21 @@
 package files
 
 import (
+	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
+	"log"
+	"math/big"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
+
 	"github.com/syndtr/goleveldb/leveldb"
-	"log"
-	"bytes"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"math/big"
 	"github.com/tyler-smith/go-bip39"
 )
 
@@ -30,13 +31,12 @@ func GetFileName() string {
 	return filePath
 }
 
-func ObtenerHashTransaccion(transaccion *Transaction) []byte {
+func GetHashTransaction(transaccion *Transaction) []byte {
 	data := fmt.Sprintf("%s%s%f%d", transaccion.Sender, transaccion.Recipient, transaccion.Amount, transaccion.Nonce)
 	h := sha256.New()
 	h.Write([]byte(data))
 	return h.Sum(nil)
 }
-
 
 func GenerarClaves(usuario string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string, error) {
 
@@ -88,7 +88,7 @@ func GenerarClaves(usuario string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string,
 	return privKey, pubKey, mnemonicStr, nil
 }
 func FirmarTransaccion(privKey *ecdsa.PrivateKey, transaccion *Transaction) {
-	hash := ObtenerHashTransaccion(transaccion)
+	hash := GetHashTransaction(transaccion)
 	r, s, err := ecdsa.Sign(rand.Reader, privKey, hash)
 	if err != nil {
 		log.Fatal(err)
