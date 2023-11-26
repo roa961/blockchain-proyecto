@@ -72,7 +72,7 @@ func main() {
 
 	//Los usuarios se "Hardcodean" para mostrar el funcionamiento de las firmas
 	usuario1 := "Bob"
-	privKey1, pubKey1, mnemonic1, err := files.GenerarClaves(usuario1)
+	privKey1, pubKey1, mnemonic1, err := files.GenerateKeys(usuario1)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func main() {
 	}
 
 	usuario2 := "Alice"
-	privKey2, pubKey2, mnemonic2, err := files.GenerarClaves(usuario2)
+	privKey2, pubKey2, mnemonic2, err := files.GenerateKeys(usuario2)
 	//fmt.println("esta es la llave publica y pribada de alice")
 	fmt.Println("Private Key:", privKey2)
 	fmt.Println("Public Key:", pubKey2)

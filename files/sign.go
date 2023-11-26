@@ -38,7 +38,7 @@ func GetHashTransaction(transaccion *Transaction) []byte {
 	return h.Sum(nil)
 }
 
-func GenerarClaves(usuario string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string, error) {
+func GenerateKeys(usuario string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string, error) {
 
 	db, err := leveldb.OpenFile("./leveldb/keys", nil)
 	if err != nil {
