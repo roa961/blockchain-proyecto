@@ -71,8 +71,8 @@ func main() {
 	files.ShowAllData(dbAccounts)
 
 	//Los usuarios se "Hardcodean" para mostrar el funcionamiento de las firmas
-	usuario1 := "Bob"
-	privKey1, pubKey1, mnemonic1, err := files.GenerateKeys(usuario1)
+	user1 := "Bob"
+	privKey1, pubKey1, mnemonic1, err := files.GenerateKeys(user1)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -80,8 +80,8 @@ func main() {
 		fmt.Println("No se encontró el mnemónico.")
 	}
 
-	usuario2 := "Alice"
-	privKey2, pubKey2, mnemonic2, err := files.GenerateKeys(usuario2)
+	user2 := "Alice"
+	privKey2, pubKey2, mnemonic2, err := files.GenerateKeys(user2)
 	//fmt.println("esta es la llave publica y pribada de alice")
 	fmt.Println("Private Key:", privKey2)
 	fmt.Println("Public Key:", pubKey2)
@@ -103,40 +103,40 @@ func main() {
 		fmt.Println("4. Salir")
 		fmt.Println("-----------------------------------")
 		// Leer la opción del usuario
-		var opcion int
+		var option int
 		fmt.Print("Seleccione una opción: ")
-		_, err := fmt.Scan(&opcion)
+		_, err := fmt.Scan(&option)
 		if err != nil {
 			fmt.Println("Error al leer la opción:", err)
 			continue
 		}
 
 		// Cases para cada una de las opciones
-		switch opcion {
+		switch option {
 		case 1:
 			fmt.Println("---INICIO--TRANSACCION---")
-			var remitente, destinatario int
+			var sender, receiver int
 			var amount float64
-			var sender, recipient string
+			var senderaux, recipient string
 
 			fmt.Println("Ingrese el remitente")
 			fmt.Println("1 Bob")
 			fmt.Println("2 Alice")
-			_, err := fmt.Scan(&remitente)
+			_, err := fmt.Scan(&sender)
 			if err != nil {
 				fmt.Println("Error al leer el remitente:", err)
 				continue
 			}
 
-			switch remitente {
+			switch sender {
 			case 1:
-				sender = usuario1
+				senderaux = user1
 				fmt.Println("Ingrese el destinatario:")
 				fmt.Println("1 Alice")
-				fmt.Scan(&destinatario)
+				fmt.Scan(&receiver)
 
-				if destinatario == 1 {
-					recipient = usuario2
+				if receiver == 1 {
+					recipient = user2
 					fmt.Println("Ingrese el monto: ")
 					fmt.Scan(&amount)
 
@@ -146,12 +146,12 @@ func main() {
 
 				}
 			case 2:
-				sender = usuario2
+				senderaux = user2
 				fmt.Println("Ingrese el destinatario:")
 				fmt.Println("1 Bob")
-				fmt.Scan(&destinatario)
-				if destinatario == 1 {
-					recipient = usuario1
+				fmt.Scan(&receiver)
+				if receiver == 1 {
+					recipient = user1
 					fmt.Println("Ingrese el monto: ")
 					fmt.Scan(&amount)
 
@@ -180,25 +180,25 @@ func main() {
 
 			transaction := []files.Transaction{
 				{
-					Sender:    sender,
+					Sender:    senderaux,
 					Recipient: recipient,
 					Amount:    amount,
 					Nonce:     nonce + 1,
 				},
 			}
-			if destinatario == 1 {
-				files.FirmarTransaccion(privKey1, &transaction[0])
-				esValida := files.VerificarFirma(pubKey1, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
-				if esValida {
+			if receiver == 1 {
+				files.SignTransaction(privKey1, &transaction[0])
+				ItIsValid := files.VerifySignature(pubKey1, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
+				if ItIsValid {
 					fmt.Println("La firma es válida y fue firmado por Bob.")
 				} else {
 					fmt.Println("La firma es inválida.")
 				}
 
-			} else if destinatario == 2 {
-				files.FirmarTransaccion(privKey2, &transaction[0])
-				esValida := files.VerificarFirma(pubKey2, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
-				if esValida {
+			} else if receiver == 2 {
+				files.SignTransaction(privKey2, &transaction[0])
+				ItIsValid := files.VerifySignature(pubKey2, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
+				if ItIsValid {
 					fmt.Println("La firma es válida y fue firmado por Alice.")
 				} else {
 					fmt.Println("La firma es inválida.")
@@ -241,14 +241,14 @@ func main() {
 				log.Printf("Error al cargar el bloque: %v", err)
 			} else {
 				fmt.Println("Bloque cargado desde la base de datos.")
-				bloque := *block
-				files.PrintBlockData(bloque)
-				trans := &bloque.Transactions[0]
-				validacion1 := files.VerificarFirma(pubKey1, files.GetHashTransaction(trans), bloque.Transactions[0].Signature)
-				validacion2 := files.VerificarFirma(pubKey2, files.GetHashTransaction(trans), bloque.Transactions[0].Signature)
-				if validacion1 {
+				blockaux := *block
+				files.PrintBlockData(blockaux)
+				trans := &blockaux.Transactions[0]
+				verify1 := files.VerifySignature(pubKey1, files.GetHashTransaction(trans), blockaux.Transactions[0].Signature)
+				verify2 := files.VerifySignature(pubKey2, files.GetHashTransaction(trans), blockaux.Transactions[0].Signature)
+				if verify1 {
 					fmt.Println("La firma es válida y fue firmado por Bob.")
-				} else if validacion2 {
+				} else if verify2 {
 					fmt.Println("La firma es válida y fue firmado por Alice.")
 				} else {
 					fmt.Println("La firma es inválida.")
