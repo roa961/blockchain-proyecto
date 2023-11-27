@@ -8,6 +8,8 @@ import (
 	// "github.com/tkanos/gonfig"
 	"log"
 	"encoding/json"
+	//"reflect"
+	"math/big"
 	
 )
 
@@ -18,6 +20,69 @@ type Account struct{
 	Name string
 	Amount float64
 	Transactions float64
+}
+type Curve struct {
+	P       *big.Int `json:"P"`
+	N       *big.Int `json:"N"`
+	B       *big.Int `json:"B"`
+	Gx      *big.Int `json:"Gx"`
+	Gy      *big.Int `json:"Gy"`
+	BitSize int      `json:"BitSize"`
+	Name    string   `json:"Name"`
+}
+
+type PublicKey struct {
+	Curve Curve     `json:"Curve"`
+	X     *big.Int  `json:"X"`
+	Y     *big.Int  `json:"Y"`
+}
+
+type PrivateKey struct {
+	Curve Curve     `json:"Curve"`
+	X     *big.Int  `json:"X"`
+	Y     *big.Int  `json:"Y"`
+	D     *big.Int  `json:"D"`
+}
+
+
+type Result struct {
+	PublicKey   PublicKey `json:"PublicKey"`
+	PrivateKey  PrivateKey `json:"PrivateKey"`
+	Mnemonic    string    `json:"Mnemonic"`
+	Name        string    `json:"Name"`
+	Amount      int       `json:"Amount"`
+	Transactions int       `json:"Transactions"`
+}
+func printResult(result Result) {
+	fmt.Println("Campo Name:", result.Name)
+	fmt.Println("Campo Mnemonic:", result.Mnemonic)
+	fmt.Println("Campo Amount:", result.Amount)
+	fmt.Println("Campo Transactions:", result.Transactions)
+
+	fmt.Println("Clave Pública:")
+	fmt.Printf("  X: %d\n", result.PublicKey.X)
+	fmt.Printf("  Y: %d\n", result.PublicKey.Y)
+	fmt.Printf("  Curve:\n")
+	fmt.Printf("    P: %d\n", result.PublicKey.Curve.P)
+	fmt.Printf("    N: %d\n", result.PublicKey.Curve.N)
+	fmt.Printf("    B: %d\n", result.PublicKey.Curve.B)
+	fmt.Printf("    Gx: %d\n", result.PublicKey.Curve.Gx)
+	fmt.Printf("    Gy: %d\n", result.PublicKey.Curve.Gy)
+	fmt.Printf("    BitSize: %d\n", result.PublicKey.Curve.BitSize)
+	fmt.Printf("    Name: %s\n", result.PublicKey.Curve.Name)
+
+	fmt.Println("Clave Privada:")
+	fmt.Printf("  X: %d\n", result.PrivateKey.X)
+	fmt.Printf("  Y: %d\n", result.PrivateKey.Y)
+	fmt.Printf("  D: %d\n", result.PrivateKey.D)
+	fmt.Printf("  Curve:\n")
+	fmt.Printf("    P: %d\n", result.PrivateKey.Curve.P)
+	fmt.Printf("    N: %d\n", result.PrivateKey.Curve.N)
+	fmt.Printf("    B: %d\n", result.PrivateKey.Curve.B)
+	fmt.Printf("    Gx: %d\n", result.PrivateKey.Curve.Gx)
+	fmt.Printf("    Gy: %d\n", result.PrivateKey.Curve.Gy)
+	fmt.Printf("    BitSize: %d\n", result.PrivateKey.Curve.BitSize)
+	fmt.Printf("    Name: %s\n", result.PrivateKey.Curve.Name)
 }
 
 func Login(db *leveldb.DB) (string, error) {
@@ -48,7 +113,7 @@ func Login(db *leveldb.DB) (string, error) {
 			PrivateKey:   privKey,
 			Mnemonic: mnemonic,
 			Name:         name,
-			Amount:       0,
+			Amount:       1000,
 			Transactions: 0,
 		}
 		
@@ -74,10 +139,27 @@ func Login(db *leveldb.DB) (string, error) {
 
 		// Obtener la información de la cuenta desde la base de datos
 		data, err := db.Get([]byte(name), nil)
+		//dataType := reflect.TypeOf(data)
+		//fmt.Printf("Tipo: %v\n", dataType)
 		jsonString := string(data)
 		fmt.Printf("Datos JSON recuperados de la base de datos:\n%s\n", jsonString)
+
+		var result Result
+		err2 := json.Unmarshal([]byte(jsonString), &result)
+		if err2 != nil {
+			fmt.Println("Error al deserializar JSON:", err)
+			
+		}
+
+		// Llamar a la función printResult
+		//printResult(result)
+
+		// Acceder al campo "Amount"
+		fmt.Printf("Amount: %d\n", result.Amount)
 		
-		//fmt.Printf("Datos JSON recuperados de la base de datos:\n%s\n", string(data))
+		
+			
+		
 		
 		
 		if err != nil {

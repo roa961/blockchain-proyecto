@@ -91,8 +91,8 @@ func main() {
 	usuario2 := "Alice"
 	privKey2, pubKey2, mnemonic2, err := files.GenerarClaves(usuario2)
 	//fmt.println("esta es la llave publica y pribada de alice")
-	fmt.Println("Private Key:", privKey2)
-	fmt.Println("Public Key:", pubKey2)
+	//fmt.Println("Private Key:", privKey2)
+	//fmt.Println("Public Key:", pubKey2)
 
 	if err != nil {
 		log.Fatal(err)
