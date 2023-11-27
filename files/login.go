@@ -8,8 +8,8 @@ import (
 	// "github.com/tkanos/gonfig"
 	"log"
 	"encoding/json"
+	
 )
-
 
 type Account struct{
 	PublicKey *ecdsa.PublicKey
@@ -20,7 +20,7 @@ type Account struct{
 	Transactions float64
 }
 
-func Login(db *leveldb.DB) {
+func Login(db *leveldb.DB) (string, error) {
 	fmt.Println("HORA DE IDENTIFICARSE")
 	var name string
 	fmt.Println("1. Crear cuenta")
@@ -62,16 +62,36 @@ func Login(db *leveldb.DB) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		//RETURN PROVISORIO
+		return "", fmt.Errorf("Opción 1 login")
 		
 		
 
 	case 2:
-		fmt.Println("IDENTIFICARSE")
+		fmt.Println("INDIQUE SU NOMBRE")
 		fmt.Print("Ingrese su nombre de cuenta: ")
 		fmt.Scanln(&name)
-		fmt.Printf("Se ha identificado como %s", name)
+
+		// Obtener la información de la cuenta desde la base de datos
+		data, err := db.Get([]byte(name), nil)
+		jsonString := string(data)
+		fmt.Printf("Datos JSON recuperados de la base de datos:\n%s\n", jsonString)
+		
+		//fmt.Printf("Datos JSON recuperados de la base de datos:\n%s\n", string(data))
+		
+		
+		if err != nil {
+            log.Fatal(err)
+        }
+
+        // // Deserializar la información en la estructura Account
+        // if err := json.Unmarshal(data, &account); err != nil {
+        //     log.Fatal(err)
+        // }
+		return string(data), nil
+			
 	default:
-		fmt.Println("Opción no válida")
+		return "", fmt.Errorf("Opción no válida")
 	}
 }
 

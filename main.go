@@ -71,7 +71,12 @@ func main() {
 	
 	
 	files.Login(dbAccounts)
-	files.ShowAllData(dbAccounts)
+    if err != nil {
+        log.Fatal(err)
+    }
+	// fmt.Printf("desde el main")
+	// accountData, err := ParseAccountJSON(jsonData)
+	//files.ShowAllData(dbAccounts)
 	
 	//Los usuarios se "Hardcodean" para mostrar el funcionamiento de las firmas
 	usuario1 := "Bob"
