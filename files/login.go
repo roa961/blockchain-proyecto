@@ -1,24 +1,28 @@
 package files
 
 import (
-	"fmt"
-	"github.com/syndtr/goleveldb/leveldb"
 	"crypto/ecdsa"
+	"fmt"
+
+	"github.com/syndtr/goleveldb/leveldb"
+
 	// "os"
 	// "github.com/tkanos/gonfig"
-	"log"
 	"encoding/json"
+
 	// "reflect"
 	"math/big"
+  "log"
 	
 )
 
-type Account struct{
-	PublicKey *ecdsa.PublicKey
-	PrivateKey *ecdsa.PrivateKey
-	Mnemonic string
-	Name string
-	Amount float64
+type Account struct {
+	PublicKey    *ecdsa.PublicKey
+	PrivateKey   *ecdsa.PrivateKey
+	Mnemonic     string
+	Name         string
+	Amount       float64
+
 	Transactions float64
 }
 type Curve struct {
@@ -94,6 +98,7 @@ func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 	var option int
 	fmt.Scanln(&option)
 
+
 	// switch option {
 	// case 1:
 	// 	fmt.Println("CREAR CUENTA")
@@ -132,6 +137,7 @@ func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 		
 		
 
+
 	// case 2:
 		fmt.Println("INDIQUE SU NOMBRE")
 		fmt.Print("Ingrese su nombre de cuenta: ")
@@ -169,15 +175,14 @@ func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 	// }
 }
 
-
-// func saveAccount(db *leveldb.DB, account Account) error {
-// 	data, err := json.Marshal(account)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	err = db.Put([]byte(username), data, nil)
-// 	return err
-// }
+//	func saveAccount(db *leveldb.DB, account Account) error {
+//		data, err := json.Marshal(account)
+//		if err != nil {
+//			return err
+//		}
+//		err = db.Put([]byte(username), data, nil)
+//		return err
+//	}
 func ShowAllData(db *leveldb.DB) {
 	iter := db.NewIterator(nil, nil)
 	for iter.Next() {
@@ -191,5 +196,3 @@ func ShowAllData(db *leveldb.DB) {
 		log.Fatal(err)
 	}
 }
-
-

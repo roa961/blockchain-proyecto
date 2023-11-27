@@ -1,13 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"github.com/syndtr/goleveldb/leveldb"
-	"encoding/json"
-	"log"
 	"blockchain-proyecto/files"
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/tkanos/gonfig"
+
 	"reflect"
 	
 )
@@ -22,9 +24,7 @@ func main() {
 
 	dbPath := configuration.DBPath
 	dbPath_cache := configuration.DBCachePath
-	dbPath_accounts :=configuration.DBAccountsPath
-
-
+	dbPath_accounts := configuration.DBAccountsPath
 
 	// Abrir la base de datos (creará una si no existe)
 	db, err := leveldb.OpenFile(dbPath, nil)
@@ -38,12 +38,12 @@ func main() {
 	}
 	defer dbCache.Close()
 	dbAccounts, err := leveldb.OpenFile(dbPath_accounts, nil)
-		
-		if err != nil {
-			log.Fatal(err)
-		}
+
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer dbAccounts.Close()
-	
+
 	transactions := []files.Transaction{
 
 		{
@@ -69,9 +69,11 @@ func main() {
 		}
 
 	}
+
 	
 	
 	Amount,Name,Mnemonic,PublicKey,PrivateKey ,err := files.Login(dbAccounts)
+
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -113,26 +115,24 @@ func main() {
 		fmt.Println("----------MENÚ-BLOCKCHAIN----------")
 		fmt.Println("Menú:")
 		fmt.Println("1. Hacer una transaccion")
-		fmt.Println("2. Leer transacción") 
+		fmt.Println("2. Leer transacción")
 		fmt.Println("3. Mostrar cadena de bloques")
 		fmt.Println("4. Salir")
 		fmt.Println("-----------------------------------")
 		// Leer la opción del usuario
-		var opcion int
+		var option int
 		fmt.Print("Seleccione una opción: ")
-		_, err := fmt.Scan(&opcion)
+		_, err := fmt.Scan(&option)
 		if err != nil {
 			fmt.Println("Error al leer la opción:", err)
 			continue
 		}
 
 		// Cases para cada una de las opciones
-		switch opcion {
+		switch option {
 		case 1:
 			fmt.Println("---INICIO--TRANSACCION---")
-			
-			
-			
+
 
 			// Iterador para buscar el valor de previous hash dentro de la base de datos cache
 			iter_cache := dbCache.NewIterator(nil, nil)
@@ -180,34 +180,40 @@ func main() {
 					Nonce:     nonce + 1,
 				},
 			}
+
 			fmt.Println(transaction)
 
-			files.FirmarTransaccion(PrivateKey,&transaction[0])
-			esValida := files.VerificarFirma(PublicKey, files.ObtenerHashTransaccion(&transaction[0]), transaction[0].Signature)
-			if esValida {
+			files.SignTransaction(PrivateKey,&transaction[0])
+			ItIsValid := files.VerifySignature(PublicKey, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
+			if ItIsValid {
 				fmt.Println("La firma es válida y fue firmado por Bob.")
 			} else {
 				fmt.Println("La firma es inválida.")
 			}
 
-			if destinatario == 1 {
-				files.FirmarTransaccion(privKey1, &transaction[0])
-				esValida := files.VerificarFirma(pubKey1, files.ObtenerHashTransaccion(&transaction[0]), transaction[0].Signature)
-				if esValida {
+			if receiver == 1 {
+				files.SignTransaction(privKey1, &transaction[0])
+				ItIsValid := files.VerifySignature(pubKey1, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
+				if ItIsValid {
+
 					fmt.Println("La firma es válida y fue firmado por Bob.")
 				} else {
 					fmt.Println("La firma es inválida.")
 				}
 
-			// } else if destinatario == 2 {
-			// 	files.FirmarTransaccion(privKey2, &transaction[0])
-			// 	esValida := files.VerificarFirma(pubKey2, files.ObtenerHashTransaccion(&transaction[0]), transaction[0].Signature)
-			// 	if esValida {
-			// 		fmt.Println("La firma es válida y fue firmado por Alice.")
-			// 	} else {
-			// 		fmt.Println("La firma es inválida.")
-			// 	}
-			// }
+
+
+
+			//} else if receiver == 2 {
+				//files.SignTransaction(privKey2, &transaction[0])
+				//ItIsValid := files.VerifySignature(pubKey2, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
+				//if ItIsValid {
+					//fmt.Println("La firma es válida y fue firmado por Alice.")
+				//} else {
+					//fmt.Println("La firma es inválida.")
+				//}
+			//}
+
 
 			prev_hash = block.Hash
 
@@ -234,31 +240,33 @@ func main() {
 
 			fmt.Println("---FIN--TRANSACCION---")
 
-		// case 2:
-		// 	var blockNumber int
-		// 	fmt.Print("Ingrese el número del bloque que leer: ")
-		// 	fmt.Scan(&blockNumber)
 
-		// 	// Carga el bloque desde la base de datos
-		// 	block, err := files.LoadBlock(db, blockNumber)
-		// 	if err != nil {
-		// 		log.Printf("Error al cargar el bloque: %v", err)
-		// 	} else {
-		// 		fmt.Println("Bloque cargado desde la base de datos.")
-		// 		bloque := *block
-		// 		files.PrintBlockData(bloque)
-		// 		trans := &bloque.Transactions[0]
-		// 		validacion1 := files.VerificarFirma(pubKey1, files.ObtenerHashTransaccion(trans), bloque.Transactions[0].Signature)
-		// 		validacion2 := files.VerificarFirma(pubKey2, files.ObtenerHashTransaccion(trans), bloque.Transactions[0].Signature)
-		// 		if validacion1 {
-		// 			fmt.Println("La firma es válida y fue firmado por Bob.")
-		// 		} else if validacion2 {
-		// 			fmt.Println("La firma es válida y fue firmado por Alice.")
-		// 		} else {
-		// 			fmt.Println("La firma es inválida.")
-		// 		}
-		// 	}
-		// 	// Imprime los datos del bloque
+		//case 2:
+			//var blockNumber int
+			//fmt.Print("Ingrese el número del bloque que leer: ")
+			//fmt.Scan(&blockNumber)
+
+			//// Carga el bloque desde la base de datos
+			//block, err := files.LoadBlock(db, blockNumber)
+			//if err != nil {
+				//log.Printf("Error al cargar el bloque: %v", err)
+			//} else {
+				//fmt.Println("Bloque cargado desde la base de datos.")
+				//blockaux := *block
+				//files.PrintBlockData(blockaux)
+				//trans := &blockaux.Transactions[0]
+				//verify1 := files.VerifySignature(pubKey1, files.GetHashTransaction(trans), blockaux.Transactions[0].Signature)
+				//verify2 := files.VerifySignature(pubKey2, files.GetHashTransaction(trans), blockaux.Transactions[0].Signature)
+				//if verify1 {
+					//fmt.Println("La firma es válida y fue firmado por Bob.")
+				//} else if verify2 {
+				//	fmt.Println("La firma es válida y fue firmado por Alice.")
+				//} else {
+				//	fmt.Println("La firma es inválida.")
+				//}
+			//}
+			//// Imprime los datos del bloque
+
 
 		case 3:
 			files.PrintBlockChain(db)

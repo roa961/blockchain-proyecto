@@ -1,20 +1,21 @@
 package files
 
 import (
+	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
+	"log"
+	"math/big"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
+
 	"github.com/syndtr/goleveldb/leveldb"
-	"log"
-	"bytes"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"math/big"
 	"github.com/tyler-smith/go-bip39"
 )
 
@@ -30,15 +31,14 @@ func GetFileName() string {
 	return filePath
 }
 
-func ObtenerHashTransaccion(transaccion *Transaction) []byte {
-	data := fmt.Sprintf("%s%s%f%d", transaccion.Sender, transaccion.Recipient, transaccion.Amount, transaccion.Nonce)
+func GetHashTransaction(transaction *Transaction) []byte {
+	data := fmt.Sprintf("%s%s%f%d", transaction.Sender, transaction.Recipient, transaction.Amount, transaction.Nonce)
 	h := sha256.New()
 	h.Write([]byte(data))
 	return h.Sum(nil)
 }
 
-
-func GenerarClaves(usuario string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string, error) {
+func GenerateKeys(user string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string, error) {
 
 	db, err := leveldb.OpenFile("./leveldb/keys", nil)
 	if err != nil {
@@ -53,55 +53,55 @@ func GenerarClaves(usuario string) (*ecdsa.PrivateKey, *ecdsa.PublicKey, string,
 	privKey, _ := ecdsa.GenerateKey(elliptic.P256(), seedReader)
 	pubKey := &privKey.PublicKey
 
-	err = db.Put([]byte(usuario+"_mnemonic"), []byte(mnemonic), nil)
+	err = db.Put([]byte(user+"_mnemonic"), []byte(mnemonic), nil)
 	if err != nil {
 		return nil, nil, "", err
 	}
 
 	privKeyBytes := privKey.D.Bytes()
-	err = db.Put([]byte(usuario+"_priv"), privKeyBytes, nil)
+	err = db.Put([]byte(user+"_priv"), privKeyBytes, nil)
 	if err != nil {
 		return nil, nil, "", err
 	}
 	pubKeyBytes := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
-	err = db.Put([]byte(usuario+"_pub"), pubKeyBytes, nil)
+	err = db.Put([]byte(user+"_pub"), pubKeyBytes, nil)
 	if err != nil {
 		return nil, nil, "", err
 	}
-	mnemonicBytes, err := db.Get([]byte(usuario+"_mnemonic"), nil)
+	mnemonicBytes, err := db.Get([]byte(user+"_mnemonic"), nil)
 	if err != nil {
 		return nil, nil, "", err
 	}
 	mnemonicStr := string(mnemonicBytes)
 
-	privKeyBytes, err = db.Get([]byte(usuario+"_priv"), nil)
+	privKeyBytes, err = db.Get([]byte(user+"_priv"), nil)
 	if err != nil {
 		return nil, nil, "", err
 	}
 	privKey.D.SetBytes(privKeyBytes)
 
-	pubKeyBytes, err = db.Get([]byte(usuario+"_pub"), nil)
+	pubKeyBytes, err = db.Get([]byte(user+"_pub"), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	pubKey.X, pubKey.Y = elliptic.Unmarshal(pubKey.Curve, pubKeyBytes)
 	return privKey, pubKey, mnemonicStr, nil
 }
-func FirmarTransaccion(privKey *ecdsa.PrivateKey, transaccion *Transaction) {
-	hash := ObtenerHashTransaccion(transaccion)
+func SignTransaction(privKey *ecdsa.PrivateKey, transaction *Transaction) {
+	hash := GetHashTransaction(transaction)
 	r, s, err := ecdsa.Sign(rand.Reader, privKey, hash)
 	if err != nil {
 		log.Fatal(err)
 	}
 	signature := append(r.Bytes(), s.Bytes()...)
-	transaccion.Signature = signature
+	transaction.Signature = signature
 
 }
 
-func VerificarFirma(pubKey *ecdsa.PublicKey, mensaje []byte, firma []byte) bool {
+func VerifySignature(pubKey *ecdsa.PublicKey, message []byte, sign []byte) bool {
 	r := new(big.Int)
 	s := new(big.Int)
-	r.SetBytes(firma[:len(firma)/2])
-	s.SetBytes(firma[len(firma)/2:])
-	return ecdsa.Verify(pubKey, mensaje, r, s)
+	r.SetBytes(sign[:len(sign)/2])
+	s.SetBytes(sign[len(sign)/2:])
+	return ecdsa.Verify(pubKey, message, r, s)
 }
