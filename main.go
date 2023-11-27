@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"github.com/syndtr/goleveldb/leveldb"
-	"encoding/json"
-	"log"
 	"blockchain-proyecto/files"
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/tkanos/gonfig"
-	
 )
 
 func main() {
@@ -21,9 +21,7 @@ func main() {
 
 	dbPath := configuration.DBPath
 	dbPath_cache := configuration.DBCachePath
-	dbPath_accounts :=configuration.DBAccountsPath
-
-
+	dbPath_accounts := configuration.DBAccountsPath
 
 	// Abrir la base de datos (creará una si no existe)
 	db, err := leveldb.OpenFile(dbPath, nil)
@@ -37,12 +35,12 @@ func main() {
 	}
 	defer dbCache.Close()
 	dbAccounts, err := leveldb.OpenFile(dbPath_accounts, nil)
-		
-		if err != nil {
-			log.Fatal(err)
-		}
+
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer dbAccounts.Close()
-	
+
 	transactions := []files.Transaction{
 
 		{
@@ -68,10 +66,9 @@ func main() {
 		}
 
 	}
-	
-	
-	result, err := files.Login(dbAccounts)
-	if err != nil {
+
+	result, _, _, _, _, err := files.Login(dbAccounts)
+	if result == 0 {
 		log.Fatal(err)
 		return
 	}
@@ -80,7 +77,7 @@ func main() {
 	// fmt.Printf("desde el main")
 	// accountData, err := ParseAccountJSON(jsonData)
 	//files.ShowAllData(dbAccounts)
-	
+
 	//Los usuarios se "Hardcodean" para mostrar el funcionamiento de las firmas
 	usuario1 := "Bob"
 	privKey1, pubKey1, mnemonic1, err := files.GenerarClaves(usuario1)
@@ -109,7 +106,7 @@ func main() {
 		fmt.Println("----------MENÚ-BLOCKCHAIN----------")
 		fmt.Println("Menú:")
 		fmt.Println("1. Hacer una transaccion")
-		fmt.Println("2. Leer transacción") 
+		fmt.Println("2. Leer transacción")
 		fmt.Println("3. Mostrar cadena de bloques")
 		fmt.Println("4. Salir")
 		fmt.Println("-----------------------------------")
