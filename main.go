@@ -9,6 +9,9 @@ import (
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/tkanos/gonfig"
+
+	"reflect"
+	
 )
 
 func main() {
@@ -67,31 +70,45 @@ func main() {
 
 	}
 
-	files.Login(dbAccounts)
-	files.ShowAllData(dbAccounts)
+	
+	
+	Amount,Name,Mnemonic,PublicKey,PrivateKey ,err := files.Login(dbAccounts)
 
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	
+	fmt.Printf("Resultado desde el main:\n")
+	fmt.Printf("Amount: %d\n", Amount)
+	fmt.Printf("Mnemonic: %s\n", Mnemonic)
+	fmt.Printf("name: %s\n", Name)
+	fmt.Printf("Public: %s\n", PublicKey)
+	fmt.Printf("Private: %s\n", PrivateKey)
+	
+	
 	//Los usuarios se "Hardcodean" para mostrar el funcionamiento de las firmas
-	user1 := "Bob"
-	privKey1, pubKey1, mnemonic1, err := files.GenerateKeys(user1)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if mnemonic1 == "" {
-		fmt.Println("No se encontró el mnemónico.")
-	}
+	// usuario1 := "Bob"
+	// privKey1, pubKey1, mnemonic1, err := files.GenerarClaves(usuario1)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// if mnemonic1 == "" {
+	// 	fmt.Println("No se encontró el mnemónico.")
+	// }
 
-	user2 := "Alice"
-	privKey2, pubKey2, mnemonic2, err := files.GenerateKeys(user2)
-	//fmt.println("esta es la llave publica y pribada de alice")
-	fmt.Println("Private Key:", privKey2)
-	fmt.Println("Public Key:", pubKey2)
+	// usuario2 := "Alice"
+	// privKey2, pubKey2, mnemonic2, err := files.GenerarClaves(usuario2)
+	// fmt.Printf("esta es la llave publica y pribada de alice")
+	// fmt.Println("Private Key:", privKey2)
+	// fmt.Println("Public Key:", pubKey2)
 
-	if err != nil {
-		log.Fatal(err)
-	}
-	if mnemonic2 == "" {
-		fmt.Println("No se encontró el mnemónico.")
-	}
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// if mnemonic2 == "" {
+	// 	fmt.Println("No se encontró el mnemónico.")
+	// }
 
 	for {
 		// Mostrar el menú
@@ -115,51 +132,7 @@ func main() {
 		switch option {
 		case 1:
 			fmt.Println("---INICIO--TRANSACCION---")
-			var sender, receiver int
-			var amount float64
-			var senderaux, recipient string
 
-			fmt.Println("Ingrese el remitente")
-			fmt.Println("1 Bob")
-			fmt.Println("2 Alice")
-			_, err := fmt.Scan(&sender)
-			if err != nil {
-				fmt.Println("Error al leer el remitente:", err)
-				continue
-			}
-
-			switch sender {
-			case 1:
-				senderaux = user1
-				fmt.Println("Ingrese el destinatario:")
-				fmt.Println("1 Alice")
-				fmt.Scan(&receiver)
-
-				if receiver == 1 {
-					recipient = user2
-					fmt.Println("Ingrese el monto: ")
-					fmt.Scan(&amount)
-
-				} else {
-					fmt.Println("Error al leer destinatario")
-					continue
-
-				}
-			case 2:
-				senderaux = user2
-				fmt.Println("Ingrese el destinatario:")
-				fmt.Println("1 Bob")
-				fmt.Scan(&receiver)
-				if receiver == 1 {
-					recipient = user1
-					fmt.Println("Ingrese el monto: ")
-					fmt.Scan(&amount)
-
-				} else {
-					fmt.Println("Error al leer destinatario")
-					continue
-				}
-			}
 
 			// Iterador para buscar el valor de previous hash dentro de la base de datos cache
 			iter_cache := dbCache.NewIterator(nil, nil)
@@ -177,33 +150,70 @@ func main() {
 			}
 
 			nonce := block.Transactions[0].Nonce
+			fmt.Print("Ingrese el destinatario: ")
+			var recipient string
+			fmt.Scanln(&recipient)
+
+			fmt.Print("Ingrese el monto a transferir: ")
+			var montoTransferir float64
+			_, err := fmt.Scanln(&montoTransferir)
+			if err != nil {
+				fmt.Println("Error al leer el monto:", err)
+				return
+			}
+			Amount_float := float64(Amount)
+			// Verificar que el monto sea positivo y menor o igual al monto original
+			if montoTransferir <= 0 || montoTransferir > Amount_float{
+				fmt.Println("El monto ingresado no es válido.")
+				return
+			}
+
+			fmt.Printf("Amount: %d\n", Amount)
+			dataType := reflect.TypeOf(Amount)
+			fmt.Printf("Tipo: %v\n", dataType)
 
 			transaction := []files.Transaction{
 				{
-					Sender:    senderaux,
+					Sender:    Name,
 					Recipient: recipient,
-					Amount:    amount,
+					Amount:    montoTransferir,
 					Nonce:     nonce + 1,
 				},
 			}
+
+			fmt.Println(transaction)
+
+			files.SignTransaction(PrivateKey,&transaction[0])
+			ItIsValid := files.VerifySignature(PublicKey, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
+			if ItIsValid {
+				fmt.Println("La firma es válida y fue firmado por Bob.")
+			} else {
+				fmt.Println("La firma es inválida.")
+			}
+
 			if receiver == 1 {
 				files.SignTransaction(privKey1, &transaction[0])
 				ItIsValid := files.VerifySignature(pubKey1, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
 				if ItIsValid {
+
 					fmt.Println("La firma es válida y fue firmado por Bob.")
 				} else {
 					fmt.Println("La firma es inválida.")
 				}
 
-			} else if receiver == 2 {
-				files.SignTransaction(privKey2, &transaction[0])
-				ItIsValid := files.VerifySignature(pubKey2, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
-				if ItIsValid {
-					fmt.Println("La firma es válida y fue firmado por Alice.")
-				} else {
-					fmt.Println("La firma es inválida.")
-				}
-			}
+
+
+
+			//} else if receiver == 2 {
+				//files.SignTransaction(privKey2, &transaction[0])
+				//ItIsValid := files.VerifySignature(pubKey2, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
+				//if ItIsValid {
+					//fmt.Println("La firma es válida y fue firmado por Alice.")
+				//} else {
+					//fmt.Println("La firma es inválida.")
+				//}
+			//}
+
 
 			prev_hash = block.Hash
 
@@ -230,31 +240,33 @@ func main() {
 
 			fmt.Println("---FIN--TRANSACCION---")
 
-		case 2:
-			var blockNumber int
-			fmt.Print("Ingrese el número del bloque que leer: ")
-			fmt.Scan(&blockNumber)
 
-			// Carga el bloque desde la base de datos
-			block, err := files.LoadBlock(db, blockNumber)
-			if err != nil {
-				log.Printf("Error al cargar el bloque: %v", err)
-			} else {
-				fmt.Println("Bloque cargado desde la base de datos.")
-				blockaux := *block
-				files.PrintBlockData(blockaux)
-				trans := &blockaux.Transactions[0]
-				verify1 := files.VerifySignature(pubKey1, files.GetHashTransaction(trans), blockaux.Transactions[0].Signature)
-				verify2 := files.VerifySignature(pubKey2, files.GetHashTransaction(trans), blockaux.Transactions[0].Signature)
-				if verify1 {
-					fmt.Println("La firma es válida y fue firmado por Bob.")
-				} else if verify2 {
-					fmt.Println("La firma es válida y fue firmado por Alice.")
-				} else {
-					fmt.Println("La firma es inválida.")
-				}
-			}
-			// Imprime los datos del bloque
+		//case 2:
+			//var blockNumber int
+			//fmt.Print("Ingrese el número del bloque que leer: ")
+			//fmt.Scan(&blockNumber)
+
+			//// Carga el bloque desde la base de datos
+			//block, err := files.LoadBlock(db, blockNumber)
+			//if err != nil {
+				//log.Printf("Error al cargar el bloque: %v", err)
+			//} else {
+				//fmt.Println("Bloque cargado desde la base de datos.")
+				//blockaux := *block
+				//files.PrintBlockData(blockaux)
+				//trans := &blockaux.Transactions[0]
+				//verify1 := files.VerifySignature(pubKey1, files.GetHashTransaction(trans), blockaux.Transactions[0].Signature)
+				//verify2 := files.VerifySignature(pubKey2, files.GetHashTransaction(trans), blockaux.Transactions[0].Signature)
+				//if verify1 {
+					//fmt.Println("La firma es válida y fue firmado por Bob.")
+				//} else if verify2 {
+				//	fmt.Println("La firma es válida y fue firmado por Alice.")
+				//} else {
+				//	fmt.Println("La firma es inválida.")
+				//}
+			//}
+			//// Imprime los datos del bloque
+
 
 		case 3:
 			files.PrintBlockChain(db)
