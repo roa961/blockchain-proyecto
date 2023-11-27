@@ -85,7 +85,7 @@ func printResult(result Result) {
 	fmt.Printf("    Name: %s\n", result.PrivateKey.Curve.Name)
 }
 
-func Login(db *leveldb.DB) (string, error) {
+func Login(db *leveldb.DB) (int, error) {
 	fmt.Println("HORA DE IDENTIFICARSE")
 	var name string
 	fmt.Println("1. Crear cuenta")
@@ -128,7 +128,7 @@ func Login(db *leveldb.DB) (string, error) {
 			log.Fatal(err)
 		}
 		//RETURN PROVISORIO
-		return "", fmt.Errorf("Opción 1 login")
+		return 10, fmt.Errorf("Opción 1 login")
 		
 		
 
@@ -155,25 +155,16 @@ func Login(db *leveldb.DB) (string, error) {
 		//printResult(result)
 
 		// Acceder al campo "Amount"
-		fmt.Printf("Amount: %d\n", result.Amount)
-		
-		
-			
-		
-		
-		
+		//fmt.Printf("Amount: %d\n", result.Amount)
+		fmt.Printf("Clave Pública:\nX: %d\nY" , result.PublicKey)
 		if err != nil {
             log.Fatal(err)
         }
-
-        // // Deserializar la información en la estructura Account
-        // if err := json.Unmarshal(data, &account); err != nil {
-        //     log.Fatal(err)
-        // }
-		return string(data), nil
+		return result.Amount,result.Name,result.Mnemonic,result.PublicKey,result., nil
+		
 			
 	default:
-		return "", fmt.Errorf("Opción no válida")
+		return 100, fmt.Errorf("Opción no válida")
 	}
 }
 

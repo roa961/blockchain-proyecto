@@ -70,10 +70,13 @@ func main() {
 	}
 	
 	
-	files.Login(dbAccounts)
-    if err != nil {
-        log.Fatal(err)
-    }
+	result, err := files.Login(dbAccounts)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	fmt.Printf("desde el main")
+	fmt.Print(result)
 	// fmt.Printf("desde el main")
 	// accountData, err := ParseAccountJSON(jsonData)
 	//files.ShowAllData(dbAccounts)
