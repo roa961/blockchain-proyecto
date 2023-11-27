@@ -8,7 +8,7 @@ import (
 	// "github.com/tkanos/gonfig"
 	"log"
 	"encoding/json"
-	//"reflect"
+	// "reflect"
 	"math/big"
 	
 )
@@ -85,7 +85,7 @@ func printResult(result Result) {
 	fmt.Printf("    Name: %s\n", result.PrivateKey.Curve.Name)
 }
 
-func Login(db *leveldb.DB) (int, error) {
+func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 	fmt.Println("HORA DE IDENTIFICARSE")
 	var name string
 	fmt.Println("1. Crear cuenta")
@@ -94,53 +94,52 @@ func Login(db *leveldb.DB) (int, error) {
 	var option int
 	fmt.Scanln(&option)
 
-	switch option {
-	case 1:
-		fmt.Println("CREAR CUENTA")
-		fmt.Print("Ingrese su nombre: ")
-		fmt.Scanln(&name)
-		privKey, pubKey, mnemonic, err := GenerarClaves(name)
-		if err != nil {
-			fmt.Println("Error:", err)
-		} else {
-			fmt.Println("Resultado de GenerarClaves para usuario1:")
-			fmt.Println("Private Key:", privKey)
-			fmt.Println("Public Key:", pubKey)
-			fmt.Println("Mnemonic:", mnemonic)
-		}
-		account := Account{
-			PublicKey:    pubKey,
-			PrivateKey:   privKey,
-			Mnemonic: mnemonic,
-			Name:         name,
-			Amount:       1000,
-			Transactions: 0,
-		}
+	// switch option {
+	// case 1:
+	// 	fmt.Println("CREAR CUENTA")
+	// 	fmt.Print("Ingrese su nombre: ")
+	// 	fmt.Scanln(&name)
+	// 	privKey, pubKey, mnemonic, err := GenerarClaves(name)
+	// 	if err != nil {
+	// 		fmt.Println("Error:", err)
+	// 	} else {
+	// 		fmt.Println("Resultado de GenerarClaves para usuario1:")
+	// 		fmt.Println("Private Key:", privKey)
+	// 		fmt.Println("Public Key:", pubKey)
+	// 		fmt.Println("Mnemonic:", mnemonic)
+	// 	}
+	// 	account := Account{
+	// 		PublicKey:    pubKey,
+	// 		PrivateKey:   privKey,
+	// 		Mnemonic: mnemonic,
+	// 		Name:         name,
+	// 		Amount:       1000,
+	// 		Transactions: 0,
+	// 	}
 		
-		data, err := json.Marshal(account)
-		if err != nil {
-			log.Fatal(err)
-		}
-		
-
-		err = db.Put([]byte(account.Name), data, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-		//RETURN PROVISORIO
-		return 10, fmt.Errorf("Opción 1 login")
-		
+	// 	data, err := json.Marshal(account)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
 		
 
-	case 2:
+	// 	err = db.Put([]byte(account.Name), data, nil)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	//RETURN PROVISORIO
+	// 	return 10, fmt.Errorf("Opción 1 login")
+		
+		
+
+	// case 2:
 		fmt.Println("INDIQUE SU NOMBRE")
 		fmt.Print("Ingrese su nombre de cuenta: ")
 		fmt.Scanln(&name)
 
 		// Obtener la información de la cuenta desde la base de datos
 		data, err := db.Get([]byte(name), nil)
-		//dataType := reflect.TypeOf(data)
-		//fmt.Printf("Tipo: %v\n", dataType)
+		
 		jsonString := string(data)
 		fmt.Printf("Datos JSON recuperados de la base de datos:\n%s\n", jsonString)
 
@@ -160,12 +159,14 @@ func Login(db *leveldb.DB) (int, error) {
 		if err != nil {
             log.Fatal(err)
         }
-		return result.Amount,result.Name,result.Mnemonic,result.PublicKey,result., nil
+		// dataType := reflect.TypeOf(result.PublicKey)
+		// fmt.Printf("Tipo: %v\n", dataType)
+		return result.Amount,result.Name,result.Mnemonic,result.PublicKey,result.PrivateKey, nil
 		
 			
-	default:
-		return 100, fmt.Errorf("Opción no válida")
-	}
+	// default:
+	// 	return 100, fmt.Errorf("Opción no válida")
+	// }
 }
 
 
