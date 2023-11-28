@@ -152,11 +152,11 @@ func main() {
 			nonce := block.Transactions[0].Nonce
 			fmt.Print("Ingrese el destinatario: ")
 			var recipient string
-			fmt.Scanln(&recipient)
+			fmt.Scan(&recipient)
 
 			fmt.Print("Ingrese el monto a transferir: ")
 			var montoTransferir float64
-			_, err := fmt.Scanln(&montoTransferir)
+			_, err := fmt.Scan(&montoTransferir)
 			if err != nil {
 				fmt.Println("Error al leer el monto:", err)
 				return
@@ -183,36 +183,23 @@ func main() {
 
 			fmt.Println(transaction)
 
-			files.SignTransaction(PrivateKey,&transaction[0])
-			ItIsValid := files.VerifySignature(PublicKey, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
-			if ItIsValid {
-				fmt.Println("La firma es válida y fue firmado por Bob.")
-			} else {
-				fmt.Println("La firma es inválida.")
-			}
+			// files.SignTransaction(PrivateKey,&transaction[0])
+			// ItIsValid := files.VerifySignature(PublicKey, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
+			// if ItIsValid {
+			// 	fmt.Println("La firma es válida y fue firmado por Bob.")
+			// } else {
+			// 	fmt.Println("La firma es inválida.")
+			// }
 
-			if receiver == 1 {
-				files.SignTransaction(privKey1, &transaction[0])
-				ItIsValid := files.VerifySignature(pubKey1, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
-				if ItIsValid {
+			// if receiver == 1 {
+			// 	files.SignTransaction(privKey1, &transaction[0])
+			// 	ItIsValid := files.VerifySignature(pubKey1, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
+			// 	if ItIsValid {
 
-					fmt.Println("La firma es válida y fue firmado por Bob.")
-				} else {
-					fmt.Println("La firma es inválida.")
-				}
-
-
-
-
-			//} else if receiver == 2 {
-				//files.SignTransaction(privKey2, &transaction[0])
-				//ItIsValid := files.VerifySignature(pubKey2, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
-				//if ItIsValid {
-					//fmt.Println("La firma es válida y fue firmado por Alice.")
-				//} else {
-					//fmt.Println("La firma es inválida.")
-				//}
-			//}
+			// 		fmt.Println("La firma es válida y fue firmado por Bob.")
+			// 	} else {
+			// 		fmt.Println("La firma es inválida.")
+			// 	}
 
 
 			prev_hash = block.Hash

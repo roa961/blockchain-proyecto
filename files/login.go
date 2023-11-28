@@ -96,49 +96,57 @@ func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 	fmt.Println("2. Ingresar nombre de cuenta para identificarse")
 	fmt.Print("Seleccione una opción (1 o 2): ")
 	var option int
+	var emptyPubK PublicKey
+	var emptyPrivK PrivateKey
+
+
 	fmt.Scanln(&option)
 
 
-	// switch option {
-	// case 1:
+	switch option {
+	case 1:
 	// 	fmt.Println("CREAR CUENTA")
-	// 	fmt.Print("Ingrese su nombre: ")
-	// 	fmt.Scanln(&name)
-	// 	privKey, pubKey, mnemonic, err := GenerarClaves(name)
-	// 	if err != nil {
-	// 		fmt.Println("Error:", err)
-	// 	} else {
-	// 		fmt.Println("Resultado de GenerarClaves para usuario1:")
-	// 		fmt.Println("Private Key:", privKey)
-	// 		fmt.Println("Public Key:", pubKey)
-	// 		fmt.Println("Mnemonic:", mnemonic)
-	// 	}
-	// 	account := Account{
-	// 		PublicKey:    pubKey,
-	// 		PrivateKey:   privKey,
-	// 		Mnemonic: mnemonic,
-	// 		Name:         name,
-	// 		Amount:       1000,
-	// 		Transactions: 0,
-	// 	}
-		
-	// 	data, err := json.Marshal(account)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
+		fmt.Print("Ingrese su nombre: ")
+		fmt.Scanln(&name)
+		nombre, err := db.Get([]byte(name), nil)
+		if nombre != nil {
+			fmt.Print("Usuario ya existente")
+			return 0, "", "", emptyPubK, emptyPrivK, err
+		}
+		privKey, pubKey, mnemonic, err := GenerateKeys(name)
 		
 
-	// 	err = db.Put([]byte(account.Name), data, nil)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	//RETURN PROVISORIO
-	// 	return 10, fmt.Errorf("Opción 1 login")
+		if err != nil {
+			fmt.Println("Error:", err)
+		} else {
+			fmt.Println("Parámetros para el usuario " + name)
+			fmt.Println("Private Key:", privKey)
+			fmt.Println("Public Key:", pubKey)
+			fmt.Println("Mnemonic:", mnemonic)
+		}
+		account := Account{
+			PublicKey:    pubKey,
+			PrivateKey:   privKey,
+			Mnemonic:     mnemonic,
+			Name:         name,
+			Amount:       1000,
+			Transactions: 0,
+		}
+
+		data, err := json.Marshal(account)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = db.Put([]byte(account.Name), data, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
 		
 		
 
 
-	// case 2:
+	case 2:
 		fmt.Println("INDIQUE SU NOMBRE")
 		fmt.Print("Ingrese su nombre de cuenta: ")
 		fmt.Scanln(&name)
@@ -170,9 +178,11 @@ func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 		return result.Amount,result.Name,result.Mnemonic,result.PublicKey,result.PrivateKey, nil
 		
 			
-	// default:
-	// 	return 100, fmt.Errorf("Opción no válida")
-	// }
+	default:
+		return 0, "", "", emptyPubK, emptyPrivK, nil
+	}
+	return 0, "", "", emptyPubK, emptyPrivK, nil
+	
 }
 
 //	func saveAccount(db *leveldb.DB, account Account) error {
