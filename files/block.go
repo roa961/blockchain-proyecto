@@ -8,14 +8,20 @@ import (
 	"encoding/json"
 )
 
+// Persona representa una estructura de datos para una persona
+type Persona struct {
+	Nombre string `json:"nombre"`
+	Edad   int    `json:"edad"`
+	Ciudad string `json:"ciudad"`
+}
 type Configuration struct {
-	DBPath        string  `json:"DB_PATH"`
-	DBCachePath   string  `json:"DB_CACHE_PATH"`
-	RootSender    string  `json:"ROOT_SENDER"`
-	RootRecipient string  `json:"ROOT_RECIPIENT"`
-	RootAmount    float64 `json:"ROOT_AMOUNT"`
-	RootNonce     int     `json:"ROOT_NONCE"`
-	DBAccountsPath string `json:"DB_ACCOUNTS_PATH"`
+	DBPath         string  `json:"DB_PATH"`
+	DBCachePath    string  `json:"DB_CACHE_PATH"`
+	RootSender     string  `json:"ROOT_SENDER"`
+	RootRecipient  string  `json:"ROOT_RECIPIENT"`
+	RootAmount     float64 `json:"ROOT_AMOUNT"`
+	RootNonce      int     `json:"ROOT_NONCE"`
+	DBAccountsPath string  `json:"DB_ACCOUNTS_PATH"`
 }
 
 type Transaction struct {
@@ -33,7 +39,6 @@ type Block struct {
 	PreviousHash string
 	Hash         string
 }
-
 
 func PrintBlockData(block Block) {
 	fmt.Println("Contenido del bloque:")
@@ -54,6 +59,7 @@ func PrintBlockData(block Block) {
 }
 
 func PrintBlockChain(db *leveldb.DB) {
+
 	iter := db.NewIterator(nil, nil)
 	for iter.Next() {
 		value := iter.Value()
@@ -83,4 +89,36 @@ func PrintBlockChain(db *leveldb.DB) {
 
 }
 
+//	func GetBlock(db *leveldb.DB) ([]byte, error) {
+//		var blockaux []Block
+//		iter := db.NewIterator(nil, nil)
+//		for iter.Next() {
+//			value := iter.Value()
+//			var block Block
+//			if err := json.Unmarshal([]byte(value), &block); err != nil {
+//				fmt.Printf("Error al deserializar el bloque: %v\n", err)
+//				return nil, err
+//			}
+//			blockaux = append(blockaux, block)
+//		}
+//		jsonPersona, err := json.Marshal(blockaux)
+//		if err != nil {
+//			return nil, err
+//		}
+//		return jsonPersona, nil
+//	}
+func GetBlock(db *leveldb.DB) []Block {
+	var blockaux []Block
+	iter := db.NewIterator(nil, nil)
+	for iter.Next() {
+		value := iter.Value()
+		var block Block
+		if err := json.Unmarshal([]byte(value), &block); err != nil {
+			fmt.Printf("Error al deserializar el bloque: %v\n", err)
+			return nil
+		}
+		blockaux = append(blockaux, block)
+	}
 
+	return blockaux
+}

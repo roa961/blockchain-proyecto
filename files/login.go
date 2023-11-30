@@ -16,11 +16,11 @@ import (
 )
 
 type Account struct {
-	PublicKey    *ecdsa.PublicKey
-	PrivateKey   *ecdsa.PrivateKey
-	Mnemonic     string
-	Name         string
-	Amount       float64
+	PublicKey  *ecdsa.PublicKey
+	PrivateKey *ecdsa.PrivateKey
+	Mnemonic   string
+	Name       string
+	Amount     float64
 
 	Transactions float64
 }
@@ -35,27 +35,27 @@ type Curve struct {
 }
 
 type PublicKey struct {
-	Curve Curve     `json:"Curve"`
-	X     *big.Int  `json:"X"`
-	Y     *big.Int  `json:"Y"`
+	Curve Curve    `json:"Curve"`
+	X     *big.Int `json:"X"`
+	Y     *big.Int `json:"Y"`
 }
 
 type PrivateKey struct {
-	Curve Curve     `json:"Curve"`
-	X     *big.Int  `json:"X"`
-	Y     *big.Int  `json:"Y"`
-	D     *big.Int  `json:"D"`
+	Curve Curve    `json:"Curve"`
+	X     *big.Int `json:"X"`
+	Y     *big.Int `json:"Y"`
+	D     *big.Int `json:"D"`
 }
-
 
 type Result struct {
-	PublicKey   PublicKey `json:"PublicKey"`
-	PrivateKey  PrivateKey `json:"PrivateKey"`
-	Mnemonic    string    `json:"Mnemonic"`
-	Name        string    `json:"Name"`
-	Amount      int       `json:"Amount"`
-	Transactions int       `json:"Transactions"`
+	PublicKey    PublicKey  `json:"PublicKey"`
+	PrivateKey   PrivateKey `json:"PrivateKey"`
+	Mnemonic     string     `json:"Mnemonic"`
+	Name         string     `json:"Name"`
+	Amount       int        `json:"Amount"`
+	Transactions int        `json:"Transactions"`
 }
+
 func printResult(result Result) {
 	fmt.Println("Campo Name:", result.Name)
 	fmt.Println("Campo Mnemonic:", result.Mnemonic)
@@ -88,7 +88,7 @@ func printResult(result Result) {
 	fmt.Printf("    Name: %s\n", result.PrivateKey.Curve.Name)
 }
 
-func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
+func Login(db *leveldb.DB) (int, string, string, PublicKey, PrivateKey, error) {
 	fmt.Println("HORA DE IDENTIFICARSE")
 	var name string
 	fmt.Println("1. Crear cuenta")
@@ -96,8 +96,9 @@ func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 	fmt.Print("Seleccione una opción (1 o 2): ")
 	var emptyPubK PublicKey
 	var emptyPrivK PrivateKey
-	var option int
-	fmt.Scanln(&option)
+
+	fmt.Scan(&option)
+
 
 
 	switch option {
@@ -175,6 +176,8 @@ func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 	default:
 		return 0, "", "", emptyPubK, emptyPrivK, nil
 	}
+ 
+ 
 }
 
 //	func saveAccount(db *leveldb.DB, account Account) error {
