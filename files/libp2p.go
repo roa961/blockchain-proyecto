@@ -2,22 +2,29 @@ package files
 
 import (
 	"bufio"
-	"context"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"strings"
 	"sync"
+	"time"
 
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p/core/host"
+	mrand "math/rand"
+
+	"github.com/davecgh/go-spew/spew"
+	libp2p "github.com/libp2p/go-libp2p"
+	crypto "github.com/libp2p/go-libp2p/core/crypto"
+	host "github.com/libp2p/go-libp2p/core/host"
+	ma "github.com/multiformats/go-multiaddr"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var mutex = &sync.Mutex{}
 
-func ReadData(db *leveldb.DB) {
+func ReadData(rw *bufio.ReadWriter, db *leveldb.DB) {
 	println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 
 	jsonPersona := GetBlock(db)
@@ -55,75 +62,65 @@ func ReadData(db *leveldb.DB) {
 		}
 	}
 }
-func writeData(rw *bufio.ReadWriter) {
+func WriteData(rw *bufio.ReadWriter, db *leveldb.DB) {
 	print("xdd")
-	// go func() {
-	// 	for {
-	// 		time.Sleep(5 * time.Second)
-	// 		mutex.Lock()
-	// 		bytes, err := json.Marshal(Blockchain)
-	// 		if err != nil {
-	// 			log.Println(err)
-	// 		}
-	// 		mutex.Unlock()
+	jsonPersona := GetBlock(db)
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			mutex.Lock()
+			bytes, err := json.Marshal(jsonPersona)
+			if err != nil {
+				log.Println(err)
+			}
+			mutex.Unlock()
 
-	// 		mutex.Lock()
-	// 		rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
-	// 		rw.Flush()
-	// 		mutex.Unlock()
+			mutex.Lock()
+			rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
+			rw.Flush()
+			mutex.Unlock()
 
-	// 	}
-	// }()
+		}
+	}()
 
-	// stdReader := bufio.NewReader(os.Stdin)
+	stdReader := bufio.NewReader(os.Stdin)
 
-	// for {
-	// 	fmt.Print("> ")
-	// 	sendData, err := stdReader.ReadString('\n')
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
+	for {
+		fmt.Print("> ")
+		sendData, err := stdReader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	// 	sendData = strings.Replace(sendData, "\n", "", -1)
-	// 	bpm, err := strconv.Atoi(sendData)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	newBlock := GenerateBlock(Blockchain[len(Blockchain)-1], bpm)
+		sendData = strings.Replace(sendData, "\n", "", -1)
+		// bpm, err := strconv.Atoi(sendData)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// newBlock := GenerateBlock(jsonPersona[len(jsonPersona)-1], bpm)
 
-	// 	if isBlockValid(newBlock, Blockchain[len(Blockchain)-1]) {
-	// 		mutex.Lock()
-	// 		Blockchain = append(Blockchain, newBlock)
-	// 		mutex.Unlock()
-	// 	}
+		// if isBlockValid(newBlock, jsonPersona[len(jsonPersona)-1]) {
+		// 	mutex.Lock()
+		// 	Blockchain = append(Blockchain, newBlock)
+		// 	mutex.Unlock()
+		// }
 
-	// 	bytes, err := json.Marshal(Blockchain)
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 	}
+		bytes, err := json.Marshal(jsonPersona)
+		if err != nil {
+			log.Println(err)
+		}
 
-	// 	spew.Dump(Blockchain)
+		spew.Dump(jsonPersona)
 
-	// 	mutex.Lock()
-	// 	rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
-	// 	rw.Flush()
-	// 	mutex.Unlock()
-	// }
+		mutex.Lock()
+		rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
+		rw.Flush()
+		mutex.Unlock()
+	}
 
 }
-func handleStream(s net.Stream) {
 
-	log.Println("Got a new stream!")
-
-	// Create a buffer stream for non blocking read and write.
-	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
-
-	go readData(rw)
-	go writeData(rw)
-
-	// stream 's' will stay open until you close it (or the other side closes it).
-}
-func makeBasicHost(listenPort int, secio bool, randseed int64) (host.Host, error) {
+func MakeBasicHost(listenPort int, secio bool, randseed int64) (host.Host, error) {
 
 	// If the seed is zero, use real cryptographic randomness. Otherwise, use a
 	// deterministic randomness source to make generated keys stay the same
@@ -147,17 +144,13 @@ func makeBasicHost(listenPort int, secio bool, randseed int64) (host.Host, error
 		libp2p.Identity(priv),
 	}
 
-	if !secio {
-		opts = append(opts, libp2p.NoEncryption())
-	}
-
-	basicHost, err := libp2p.New(context.Background(), opts...)
+	basicHost, err := libp2p.New(opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	// Build host multiaddress
-	hostAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", basicHost.ID().Pretty()))
+	hostAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", basicHost.ID().String()))
 
 	// Now we can build a full multiaddress to reach this host
 	// by encapsulating both addresses:

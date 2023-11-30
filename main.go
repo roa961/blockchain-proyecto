@@ -3,12 +3,18 @@ package main
 import (
 	"blockchain-proyecto/files"
 	"bufio"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 
+	net "github.com/libp2p/go-libp2p/core/network"
+	peer "github.com/libp2p/go-libp2p/core/peer"
+	pstore "github.com/libp2p/go-libp2p/core/peerstore"
+
+	ma "github.com/multiformats/go-multiaddr"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/tkanos/gonfig"
 
@@ -78,8 +84,7 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	if true {
-		golog.SetAllLoggers(gologging.INFO) // Change to DEBUG for extra info
+	for {
 
 		// Parse options from the command line
 		listenF := flag.Int("l", 0, "wait for incoming connections")
@@ -87,11 +92,76 @@ func main() {
 		secio := flag.Bool("secio", false, "enable secio")
 		seed := flag.Int64("seed", 0, "set random seed for id generation")
 		flag.Parse()
-		rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+		if *listenF == 0 {
+			log.Fatal("Please provide a port to bind on with -l")
+		}
 
+		ha, err := files.MakeBasicHost(*listenF, *secio, *seed)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if *target == "" {
+			log.Println("listening for connections")
+			// Set a stream handler on host A. /p2p/1.0.0 is
+			// a user-defined protocol name.
+			ha.SetStreamHandler("/p2p/1.0.0", func(s net.Stream) {
+				HandleStream(s, db)
+			})
+
+			select {} // hang forever
+			/**** This is where the listener code ends ****/
+		} else {
+			ha.SetStreamHandler("/p2p/1.0.0", func(s net.Stream) {
+				HandleStream(s, db)
+			})
+
+			// The following code extracts target's peer ID from the
+			// given multiaddress
+			ipfsaddr, err := ma.NewMultiaddr(*target)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			pid, err := ipfsaddr.ValueForProtocol(ma.P_IPFS)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			peerid, err := peer.Decode(pid)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			// Decapsulate the /ipfs/<peerID> part from the target
+			// /ip4/<a.b.c.d>/ipfs/<peer> becomes /ip4/<a.b.c.d>
+			targetPeerAddr, _ := ma.NewMultiaddr(
+				fmt.Sprintf("/ipfs/%s", peerid.String()))
+			targetAddr := ipfsaddr.Decapsulate(targetPeerAddr)
+
+			// We have a peer ID and a targetAddr so we add it to the peerstore
+			// so LibP2P knows how to contact it
+			ha.Peerstore().AddAddr(peerid, targetAddr, pstore.PermanentAddrTTL)
+
+			log.Println("opening stream")
+			// make a new stream from host B to host A
+			// it should be handled on host A by the handler we set above because
+			// we use the same /p2p/1.0.0 protocol
+			s, err := ha.NewStream(context.Background(), peerid, "/p2p/1.0.0")
+			if err != nil {
+				log.Fatalln(err)
+			}
+			// Create a buffered stream so that read and writes are non blocking.
+			rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+
+			// Create a thread to read and write data.
+			go files.WriteData(rw, db)
+			go files.ReadData(rw, db)
+
+			select {} // hang forever
+
+		}
 		// files.ReadData(db)
 		// Obtener el JSON de la persona
-		files.ReadData(db)
 		//Imprimir el JSON
 	}
 	fmt.Printf("Resultado desde el main:\n")
@@ -254,4 +324,16 @@ func main() {
 
 	}
 
+}
+func HandleStream(s net.Stream, db *leveldb.DB) {
+
+	log.Println("Got a new stream!")
+
+	// Create a buffer stream for non blocking read and write.
+	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+
+	go files.ReadData(rw, db)
+	go files.WriteData(rw, db)
+
+	// stream 's' will stay open until you close it (or the other side closes it).
 }
