@@ -11,17 +11,16 @@ import (
 	"encoding/json"
 
 	// "reflect"
+	"log"
 	"math/big"
-  "log"
-	
 )
 
 type Account struct {
-	PublicKey    *ecdsa.PublicKey
-	PrivateKey   *ecdsa.PrivateKey
-	Mnemonic     string
-	Name         string
-	Amount       float64
+	PublicKey  *ecdsa.PublicKey
+	PrivateKey *ecdsa.PrivateKey
+	Mnemonic   string
+	Name       string
+	Amount     float64
 
 	Transactions float64
 }
@@ -36,27 +35,27 @@ type Curve struct {
 }
 
 type PublicKey struct {
-	Curve Curve     `json:"Curve"`
-	X     *big.Int  `json:"X"`
-	Y     *big.Int  `json:"Y"`
+	Curve Curve    `json:"Curve"`
+	X     *big.Int `json:"X"`
+	Y     *big.Int `json:"Y"`
 }
 
 type PrivateKey struct {
-	Curve Curve     `json:"Curve"`
-	X     *big.Int  `json:"X"`
-	Y     *big.Int  `json:"Y"`
-	D     *big.Int  `json:"D"`
+	Curve Curve    `json:"Curve"`
+	X     *big.Int `json:"X"`
+	Y     *big.Int `json:"Y"`
+	D     *big.Int `json:"D"`
 }
-
 
 type Result struct {
-	PublicKey   PublicKey `json:"PublicKey"`
-	PrivateKey  PrivateKey `json:"PrivateKey"`
-	Mnemonic    string    `json:"Mnemonic"`
-	Name        string    `json:"Name"`
-	Amount      int       `json:"Amount"`
-	Transactions int       `json:"Transactions"`
+	PublicKey    PublicKey  `json:"PublicKey"`
+	PrivateKey   PrivateKey `json:"PrivateKey"`
+	Mnemonic     string     `json:"Mnemonic"`
+	Name         string     `json:"Name"`
+	Amount       int        `json:"Amount"`
+	Transactions int        `json:"Transactions"`
 }
+
 func printResult(result Result) {
 	fmt.Println("Campo Name:", result.Name)
 	fmt.Println("Campo Mnemonic:", result.Mnemonic)
@@ -89,7 +88,7 @@ func printResult(result Result) {
 	fmt.Printf("    Name: %s\n", result.PrivateKey.Curve.Name)
 }
 
-func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
+func Login(db *leveldb.DB) (int, string, string, PublicKey, PrivateKey, error) {
 	fmt.Println("HORA DE IDENTIFICARSE")
 	var name string
 	fmt.Println("1. Crear cuenta")
@@ -99,22 +98,19 @@ func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 	var emptyPubK PublicKey
 	var emptyPrivK PrivateKey
 
-
-	fmt.Scanln(&option)
-
+	fmt.Scan(&option)
 
 	switch option {
 	case 1:
-	// 	fmt.Println("CREAR CUENTA")
+		// 	fmt.Println("CREAR CUENTA")
 		fmt.Print("Ingrese su nombre: ")
-		fmt.Scanln(&name)
+		fmt.Scan(&name)
 		nombre, err := db.Get([]byte(name), nil)
 		if nombre != nil {
 			fmt.Print("Usuario ya existente")
 			return 0, "", "", emptyPubK, emptyPrivK, err
 		}
 		privKey, pubKey, mnemonic, err := GenerateKeys(name)
-		
 
 		if err != nil {
 			fmt.Println("Error:", err)
@@ -142,18 +138,17 @@ func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		
-		
 
+		return int(account.Amount), account.Name, account.Mnemonic, emptyPubK, emptyPrivK, nil
 
 	case 2:
 		fmt.Println("INDIQUE SU NOMBRE")
 		fmt.Print("Ingrese su nombre de cuenta: ")
-		fmt.Scanln(&name)
+		fmt.Scan(&name)
 
 		// Obtener la información de la cuenta desde la base de datos
 		data, err := db.Get([]byte(name), nil)
-		
+
 		jsonString := string(data)
 		fmt.Printf("Datos JSON recuperados de la base de datos:\n%s\n", jsonString)
 
@@ -161,7 +156,7 @@ func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 		err2 := json.Unmarshal([]byte(jsonString), &result)
 		if err2 != nil {
 			fmt.Println("Error al deserializar JSON:", err)
-			
+
 		}
 
 		// Llamar a la función printResult
@@ -169,20 +164,19 @@ func Login(db *leveldb.DB) (int,string,string,PublicKey,PrivateKey, error) {
 
 		// Acceder al campo "Amount"
 		//fmt.Printf("Amount: %d\n", result.Amount)
-		fmt.Printf("Clave Pública:\nX: %d\nY" , result.PublicKey)
+		fmt.Printf("Clave Pública:\nX: %d\nY", result.PublicKey)
 		if err != nil {
-            log.Fatal(err)
-        }
+			log.Fatal(err)
+		}
 		// dataType := reflect.TypeOf(result.PublicKey)
 		// fmt.Printf("Tipo: %v\n", dataType)
-		return result.Amount,result.Name,result.Mnemonic,result.PublicKey,result.PrivateKey, nil
-		
-			
+		return result.Amount, result.Name, result.Mnemonic, result.PublicKey, result.PrivateKey, nil
+
 	default:
 		return 0, "", "", emptyPubK, emptyPrivK, nil
 	}
 	return 0, "", "", emptyPubK, emptyPrivK, nil
-	
+
 }
 
 //	func saveAccount(db *leveldb.DB, account Account) error {
