@@ -1,5 +1,5 @@
 
-# Proyecto Blockchain: Entrega N°1 
+# Proyecto Blockchain: Entregas 
 
 En el repositorio es posible encontrar la entrega N°1 del proyecto semestral. Este contiene la implementación de las distintas funcionalidades que fueron solicitadas.
 
@@ -49,3 +49,8 @@ Para la presente entrega, se realiza la firma de cada una de las transacciones d
 La forma que encontramos para firmar cada una las transacciones no nos permite utilizar las llaves generadas y almacendas en Leveldb para realizar la verificación.   
 La verificación de firmas sólo es exitosa al realizarla en una misma ejecución del programa, ya que en siguientes ejecuciones, la llave pública es siempre distinta y la verificacion falla.  
 El código no funcional para verificar firmas se encuentra en la rama [intento_firma](https://github.com/roa961/blockchain-proyecto/tree/intento_firma)
+
+## Entrega N°3
+
+La entrega N°3 se encuentra en el siguiente enlace:
+https://docs.google.com/document/d/1ehaANi88cDup7hd3SFKD74bSHb3FSTziJYamszunYWc/edit?usp=sharing
