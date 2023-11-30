@@ -94,11 +94,12 @@ func Login(db *leveldb.DB) (int, string, string, PublicKey, PrivateKey, error) {
 	fmt.Println("1. Crear cuenta")
 	fmt.Println("2. Ingresar nombre de cuenta para identificarse")
 	fmt.Print("Seleccione una opción (1 o 2): ")
-	var option int
 	var emptyPubK PublicKey
 	var emptyPrivK PrivateKey
 
 	fmt.Scan(&option)
+
+
 
 	switch option {
 	case 1:
@@ -175,8 +176,8 @@ func Login(db *leveldb.DB) (int, string, string, PublicKey, PrivateKey, error) {
 	default:
 		return 0, "", "", emptyPubK, emptyPrivK, nil
 	}
-	return 0, "", "", emptyPubK, emptyPrivK, nil
-
+ 
+ 
 }
 
 //	func saveAccount(db *leveldb.DB, account Account) error {
