@@ -25,123 +25,94 @@ import (
 var mutex = &sync.Mutex{}
 
 func ReadData(rw *bufio.ReadWriter, db *leveldb.DB) {
-	println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+    jsonPersona := GetBlock(db)
 
-	jsonPersona := GetBlock(db)
-	//fmt.Printf("jsonPersona: %s\n", jsonPersona)
+    for {
+        str, err := rw.ReadString('\n')
+        if err != nil {
+            log.Fatal(err)
+        }
 
-	for {
-		str, err := rw.ReadString('\n')
-		if err != nil {
-			log.Fatal(err)
-		}
-	
-		// Imprime lo que se leyó, independientemente de su contenido
-		fmt.Printf("Received: %s\n", str)
-	
-		if str == "" {
-			fmt.Printf("HKJDAHJKFDFAKJHAFDNKJFDSANJAFDKSNKSADF\n")
-			// Si quieres terminar el bucle cuando str es vacío, descomenta la siguiente línea
-			// return
-		}
-	
-		if str != " " {
-			fmt.Print("cualquier wea")
-			chain := make([]Block, 0)
-			if err := json.Unmarshal([]byte(str), &chain); err != nil {
-				log.Fatal(err)
-			}
-			fmt.Print("cualquier wea 2")
-			mutex.Lock()
-			fmt.Print("cualquier wea 3")
-			//cuidado con este if
-			//if len(chain) < len(jsonPersona) {
-				fmt.Print("cualquier wea 4")
-				jsonPersona = chain
-				bytes, err := json.MarshalIndent(jsonPersona, "", "  ")
-				if err != nil {
-					log.Fatal(err)
-				}
-	
-				// Imprime los bytes en color verde
-				fmt.Printf("\x1b[32m%s\x1b[0m> ", string(bytes))
-			//}
-			mutex.Unlock()
-			fmt.Print("cualquier wea 5")
-		}
-		
-	}
+        // Quita espacios en blanco y saltos de línea
+        str = strings.TrimSpace(str)
+
+        // Imprime lo que se leyó, independientemente de su contenido
+        fmt.Printf("Received: %s\n", str)
+
+        if str == "" {
+            fmt.Printf("Cadena vacía recibida\n")
+            continue
+        }
+
+        chain := make([]Block, 0)
+        err = json.Unmarshal([]byte(str), &chain)
+
+        if err != nil { // Si hay un error, asume que es un string simple y lo imprime
+            fmt.Printf("String recibido: %s\n", str)
+        } else { // Si no hay error, asume que es un tipo Block y procede como antes
+            mutex.Lock()
+           // if len(chain) > len(jsonPersona) {
+                jsonPersona = chain
+                bytes, err := json.MarshalIndent(jsonPersona, "", "  ")
+                if err != nil {
+                    log.Fatal(err)
+                }
+                fmt.Printf("\x1b[32m%s\x1b[0m> ", string(bytes))
+          //  }
+            mutex.Unlock()
+        }
+    }
 }
+
 func WriteData(rw *bufio.ReadWriter, db *leveldb.DB) {
-	print("xdd")
-	jsonPersona := GetBlock(db)
-	// go func() {
-	// 	for {
-	// 		time.Sleep(5 * time.Second)
-	// 		mutex.Lock()
-	// 		bytes, err := json.Marshal(jsonPersona)
-	// 		if err != nil {
-	// 			log.Println(err)
-	// 		}
-	// 		mutex.Unlock()
+    stdReader := bufio.NewReader(os.Stdin)
 
-	// 		mutex.Lock()
-	// 		rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
-	// 		rw.Flush()
-	// 		mutex.Unlock()
+    for {
+        fmt.Println("Selecciona una opción:")
+        fmt.Println("1. Enviar bloque")
+        fmt.Println("2. Enviar mensaje personalizado")
+        fmt.Print("> ")
 
-	// 	}
-	// }()
+        option, err := stdReader.ReadString('\n')
+        if err != nil {
+            log.Fatal(err)
+        }
 
-	stdReader := bufio.NewReader(os.Stdin)
+        option = strings.TrimSpace(option) // Elimina espacios y saltos de línea
 
-	for {
-		fmt.Print("exisde exisde exisde")
-		fmt.Print("> ")
-		sendData, err := stdReader.ReadString('\n')
-		if err != nil {
-			log.Fatal(err)
-		}
+        switch option {
+        case "1":
+            jsonPersona := GetBlock(db)
 
-		sendData = strings.Replace(sendData, "\n", "", -1)
-		// bpm, err := strconv.Atoi(sendData)
-		// transaction := Transaction{
-		// 	Sender:    "senderAddress",
-		// 	Recipient: "recipientAddress",
-		// 	Amount:    100.0,
-		// 	Nonce:     1,
-		// 	Signature: []byte("yourSignature"), // Reemplaza esto con una firma real si es necesario
-		// }
-		// transactions := []Transaction{transaction}
-		// dataToSend := GenerateBlock(2,"9a27d61ded67313a0085903c46d0600e76e6e3b80d60ad97b447cba63efb000f",transactions)
-		// PrintBlockData(dataToSend)
-		// if isBlockValid(newBlock, jsonPersona[len(jsonPersona)-1]) {
-		// 	mutex.Lock()
-		// 	Blockchain = append(Blockchain, newBlock)
-		// 	mutex.Unlock()
-		// }
+            mutex.Lock()
+            bytes, err := json.Marshal(jsonPersona)
+            if err != nil {
+                log.Println(err)
+            }
+            rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
+            rw.Flush()
+            mutex.Unlock()
 
-		// bytes, err := json.Marshal(jsonPersona)
-		// if err != nil {
-		// 	log.Println(err)
-		// }
+        case "2":
+            fmt.Print("Ingresa tu mensaje: ")
+            message, err := stdReader.ReadString('\n')
+            if err != nil {
+                log.Fatal(err)
+            }
 
-		//spew.Dump(jsonPersona)
-		mutex.Lock()
-			bytes, err := json.Marshal(jsonPersona)
-			if err != nil {
-				log.Println(err)
-			}
-			mutex.Unlock()
+            message = strings.TrimSpace(message) // Elimina espacios y saltos de línea
 
-			mutex.Lock()
-			rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
-			rw.Flush()
-			mutex.Unlock()
+            mutex.Lock()
+            rw.WriteString(fmt.Sprintf("%s\n", message))
+            rw.Flush()
+            mutex.Unlock()
 
-			}
-
+        default:
+            fmt.Println("Opción no válida. Por favor, elige 1 o 2.")
+        }
+    }
 }
+
 
 func MakeBasicHost(listenPort int, secio bool, randseed int64) (host.Host, error) {
 
