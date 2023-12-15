@@ -86,7 +86,7 @@ func main() {
 	}
 	for {
 
-		// Parse options from the command line
+		//Parse options from the command line
 		listenF := flag.Int("l", 0, "wait for incoming connections")
 		target := flag.String("d", "", "target peer to dial")
 		secio := flag.Bool("secio", false, "enable secio")
@@ -107,7 +107,7 @@ func main() {
 			ha.SetStreamHandler("/p2p/1.0.0", func(s net.Stream) {
 				HandleStream(s, db)
 			})
-
+			fmt.Print("you are here forever")
 			select {} // hang forever
 			/**** This is where the listener code ends ****/
 		} else {

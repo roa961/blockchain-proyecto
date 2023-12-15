@@ -96,7 +96,7 @@ func Login(db *leveldb.DB) (int, string, string, PublicKey, PrivateKey, error) {
 	fmt.Print("Seleccione una opción (1 o 2): ")
 	var emptyPubK PublicKey
 	var emptyPrivK PrivateKey
-
+	var option int
 	fmt.Scan(&option)
 
 
