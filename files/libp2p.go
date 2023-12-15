@@ -10,11 +10,11 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"time"
+	//"time"
 
 	mrand "math/rand"
 
-	"github.com/davecgh/go-spew/spew"
+	//"github.com/davecgh/go-spew/spew"
 	libp2p "github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p/core/crypto"
 	host "github.com/libp2p/go-libp2p/core/host"
@@ -28,47 +28,106 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB) {
 	println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 
 	jsonPersona := GetBlock(db)
-	fmt.Printf("jsonPersona: %s\n", jsonPersona)
+	//fmt.Printf("jsonPersona: %s\n", jsonPersona)
 
 	for {
 		str, err := rw.ReadString('\n')
 		if err != nil {
 			log.Fatal(err)
 		}
-
+	
+		// Imprime lo que se leyó, independientemente de su contenido
+		fmt.Printf("Received: %s\n", str)
+	
 		if str == "" {
-			return
+			fmt.Printf("HKJDAHJKFDFAKJHAFDNKJFDSANJAFDKSNKSADF\n")
+			// Si quieres terminar el bucle cuando str es vacío, descomenta la siguiente línea
+			// return
 		}
-		if str != "\n" {
-
+	
+		if str != " " {
+			fmt.Print("cualquier wea")
 			chain := make([]Block, 0)
 			if err := json.Unmarshal([]byte(str), &chain); err != nil {
 				log.Fatal(err)
 			}
-
+			fmt.Print("cualquier wea 2")
 			mutex.Lock()
-			if len(chain) > len(jsonPersona) {
+			fmt.Print("cualquier wea 3")
+			//cuidado con este if
+			//if len(chain) < len(jsonPersona) {
+				fmt.Print("cualquier wea 4")
 				jsonPersona = chain
 				bytes, err := json.MarshalIndent(jsonPersona, "", "  ")
 				if err != nil {
-
 					log.Fatal(err)
 				}
-				// Green console color: 	\x1b[32m
-				// Reset console color: 	\x1b[0m
+	
+				// Imprime los bytes en color verde
 				fmt.Printf("\x1b[32m%s\x1b[0m> ", string(bytes))
-			}
+			//}
 			mutex.Unlock()
+			fmt.Print("cualquier wea 5")
 		}
+		
 	}
 }
 func WriteData(rw *bufio.ReadWriter, db *leveldb.DB) {
 	print("xdd")
 	jsonPersona := GetBlock(db)
-	go func() {
-		for {
-			time.Sleep(5 * time.Second)
-			mutex.Lock()
+	// go func() {
+	// 	for {
+	// 		time.Sleep(5 * time.Second)
+	// 		mutex.Lock()
+	// 		bytes, err := json.Marshal(jsonPersona)
+	// 		if err != nil {
+	// 			log.Println(err)
+	// 		}
+	// 		mutex.Unlock()
+
+	// 		mutex.Lock()
+	// 		rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
+	// 		rw.Flush()
+	// 		mutex.Unlock()
+
+	// 	}
+	// }()
+
+	stdReader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Print("exisde exisde exisde")
+		fmt.Print("> ")
+		sendData, err := stdReader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		sendData = strings.Replace(sendData, "\n", "", -1)
+		// bpm, err := strconv.Atoi(sendData)
+		// transaction := Transaction{
+		// 	Sender:    "senderAddress",
+		// 	Recipient: "recipientAddress",
+		// 	Amount:    100.0,
+		// 	Nonce:     1,
+		// 	Signature: []byte("yourSignature"), // Reemplaza esto con una firma real si es necesario
+		// }
+		// transactions := []Transaction{transaction}
+		// dataToSend := GenerateBlock(2,"9a27d61ded67313a0085903c46d0600e76e6e3b80d60ad97b447cba63efb000f",transactions)
+		// PrintBlockData(dataToSend)
+		// if isBlockValid(newBlock, jsonPersona[len(jsonPersona)-1]) {
+		// 	mutex.Lock()
+		// 	Blockchain = append(Blockchain, newBlock)
+		// 	mutex.Unlock()
+		// }
+
+		// bytes, err := json.Marshal(jsonPersona)
+		// if err != nil {
+		// 	log.Println(err)
+		// }
+
+		//spew.Dump(jsonPersona)
+		mutex.Lock()
 			bytes, err := json.Marshal(jsonPersona)
 			if err != nil {
 				log.Println(err)
@@ -80,43 +139,7 @@ func WriteData(rw *bufio.ReadWriter, db *leveldb.DB) {
 			rw.Flush()
 			mutex.Unlock()
 
-		}
-	}()
-
-	stdReader := bufio.NewReader(os.Stdin)
-
-	for {
-		fmt.Print("> ")
-		sendData, err := stdReader.ReadString('\n')
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		sendData = strings.Replace(sendData, "\n", "", -1)
-		// bpm, err := strconv.Atoi(sendData)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// newBlock := GenerateBlock(jsonPersona[len(jsonPersona)-1], bpm)
-
-		// if isBlockValid(newBlock, jsonPersona[len(jsonPersona)-1]) {
-		// 	mutex.Lock()
-		// 	Blockchain = append(Blockchain, newBlock)
-		// 	mutex.Unlock()
-		// }
-
-		bytes, err := json.Marshal(jsonPersona)
-		if err != nil {
-			log.Println(err)
-		}
-
-		spew.Dump(jsonPersona)
-
-		mutex.Lock()
-		rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
-		rw.Flush()
-		mutex.Unlock()
-	}
+			}
 
 }
 
