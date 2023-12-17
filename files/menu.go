@@ -19,7 +19,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	//"github.com/tkanos/gonfig"
 
-	"reflect"
+	//"reflect"
 )
 
 func Menu(db *leveldb.DB){
@@ -122,6 +122,7 @@ func Menu(db *leveldb.DB){
 			var value []byte
 			var block Block
 
+			
 			iter_cache.Next()
 			value = iter_cache.Value()
 			key_cache = iter_cache.Key()
@@ -130,10 +131,21 @@ func Menu(db *leveldb.DB){
 				log.Fatalf("Error al deserializar el bloque: %v", err)
 			}
 
+			fmt.Println("Monto disponible:", Amount)
+
 			nonce := block.Transactions[0].Nonce
 			fmt.Print("Ingrese el destinatario: ")
 			var recipient string
 			fmt.Scan(&recipient)
+			//FUNCION VERIFICAR DESTINATARIO
+			existAccount :=  ExistAccount(dbAccounts,recipient)
+			if existAccount {
+				fmt.Printf("La cuenta '%s' existe.\n", recipient)
+			} else {
+				fmt.Printf("La cuenta '%s' no existe.\n", recipient)
+				continue
+			}
+			
 
 			fmt.Print("Ingrese el monto a transferir: ")
 			var montoTransferir float64
@@ -148,10 +160,10 @@ func Menu(db *leveldb.DB){
 				fmt.Println("El monto ingresado no es válido.")
 				return
 			}
+			finalAmount := SetNewAmount(dbAccounts, montoTransferir, Name)
+			fmt.Printf("Te quedaste con: %.2f\n", finalAmount) // Utiliza %.2f para dos decimales
 
-			fmt.Printf("Amount: %d\n", Amount)
-			dataType := reflect.TypeOf(Amount)
-			fmt.Printf("Tipo: %v\n", dataType)
+			
 
 			transaction := []Transaction{
 				{
