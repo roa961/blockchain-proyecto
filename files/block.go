@@ -59,7 +59,7 @@ func PrintBlockData(block Block) {
 }
 
 func PrintBlockChain(db *leveldb.DB) {
-
+	fmt.Printf("entro en printblockchain")
 	iter := db.NewIterator(nil, nil)
 	for iter.Next() {
 		value := iter.Value()

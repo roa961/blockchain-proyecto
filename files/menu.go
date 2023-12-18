@@ -27,28 +27,6 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 		// os.Exit(500)
 	}
 
-	// //dbPath := configuration.DBPath
-	// dbPath_cache := configuration.DBCachePath
-	// dbPath_accounts := configuration.DBAccountsPath
-
-	// Abrir la base de datos (creará una si no existe)
-	// db, err := leveldb.OpenFile(dbPath, nil)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	//defer db.Close()
-	// dbCache, err := leveldb.OpenFile(dbPath_cache, nil)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer dbCache.Close()
-	// dbAccounts, err := leveldb.OpenFile(dbPath_accounts, nil)
-
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer dbAccounts.Close()
-
 	transactions := []Transaction{
 
 		{
@@ -63,16 +41,18 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 	defer iter_check.Release()
 	empty := !iter_check.Next()
 	if empty {
-
+		fmt.Printf("EMPTYYYYYYYYYY LA CONCHA DE TU HERMANAS")
 		//Se crea el bloque raíz con índice 1, previous hash "" y una transacción con información contenida en el config file
 		block := GenerateBlock(1, "", transactions)
-		if err := SaveBlock(db, block); err != nil {
+		if err := UpdateBlockChain(db,dbCache, block); err != nil {
 			log.Fatal(err)
 		}
-		if err := SaveBlock(dbCache, block); err != nil {
-			log.Fatal(err)
-		}
+		// if err := SaveBlock(dbCache, block); err != nil {
+		// 	log.Fatal(err)
+		// }
 
+	}else{
+		fmt.Printf("EMPTYYYYYYYYYYNTTTTTTTTTTT ")
 	}
 
 	Amount, Name, Mnemonic, PublicKey, PrivateKey, err := Login(dbAccounts, rw)
@@ -111,13 +91,13 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 		case 1:
 			fmt.Println("---INICIO--TRANSACCION---")
 
-			// Iterador para buscar el valor de previous hash dentro de la base de datos cache
 			iter_cache := dbCache.NewIterator(nil, nil)
 			var prev_hash string
 			var key_cache []byte
 			var value []byte
 			var block Block
 			
+			PrintBlockChain(dbCache)
 			iter_cache.Next()
 			value = iter_cache.Value()
 			key_cache = iter_cache.Key()
@@ -214,13 +194,13 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 				log.Printf("Error deleting key %s: %v", key_cache, err)
 			}
 
-			if err := UpdateBlockChain(db, block); err != nil {
+			if err := UpdateBlockChain(db, dbCache,block); err != nil {
 				log.Fatal(err)
 			}
 
-			if err := SaveBlock(dbCache, block); err != nil {
-				log.Fatal(err)
-			}
+			// if err := SaveBlock(dbCache, block); err != nil {
+			// 	log.Fatal(err)
+			// }
 			fmt.Printf("Bloque generado y guardado.\n")
 
 			mutex.Lock()

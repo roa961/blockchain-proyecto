@@ -132,14 +132,14 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCa
                 if len(blocks) > 0 {
                     fmt.Printf("Primer bloque recibido: %+v\n", blocks[0])
                     // Aquí puedes añadir más lógica para manejar los bloques
-                    UpdateBlockChain(db,blocks[0])
-                    UpdateBlockChain(dbCache,blocks[0])
+                    UpdateBlockChain(db,dbCache,blocks[0])
+                    
                 }
 				}
 
 			}
 			if errBlock == nil {
-				mutex.Lock()
+				
 
 				// Imprimir detalles del bloque
 				fmt.Printf("Block:\n")
@@ -159,13 +159,13 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCa
 				fmt.Println("---------------------------")
 
 				// Actualizar la cadena de bloques con el nuevo bloque
-				err := UpdateBlockChain(db, block)
+				err := UpdateBlockChain(db,dbCache ,block)
 				//err := SaveBlock(db, block)
 				if err != nil {
 					log.Printf("Error al actualizar la cadena de bloques con el nuevo bloque: %v\n", err)
 				}
 
-				mutex.Unlock()
+				
 			}
 
 		}
