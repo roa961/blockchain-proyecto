@@ -86,41 +86,21 @@ func SetNewAmount(dbAccounts *leveldb.DB, amount float64, accountName string) fl
 
     return float64(result.Amount)
 }
-func UpdateBlockChain(db *leveldb.DB, blocks []Block) error {
-    // Crear un iterador para la base de datos
-    iter := db.NewIterator(nil, nil)
-    for iter.Next() {
-        // Eliminar cada clave encontrada
-        err := db.Delete(iter.Key(), nil)
-        if err != nil {
-            iter.Release()
-            return fmt.Errorf("error al eliminar la clave existente: %v", err)
-        }
-    }
-    iter.Release()
-
-    // Verificar si hubo errores durante la iteración
-    if err := iter.Error(); err != nil {
-        return fmt.Errorf("error durante la iteración: %v", err)
+func UpdateBlockChain(db *leveldb.DB, block Block) error {
+    // Serializar el bloque a JSON
+    blockData, err := json.Marshal(block)
+    if err != nil {
+        return fmt.Errorf("error al serializar el bloque %d: %v", block.Index, err)
     }
 
-    // Ahora escribe los nuevos bloques
-    for _, block := range blocks {
-        // Serializar el bloque a JSON
-        blockData, err := json.Marshal(block)
-        if err != nil {
-            return fmt.Errorf("error al serializar el bloque %d: %v", block.Index, err)
-        }
+    // Usar el índice del bloque como clave para almacenarlo en LevelDB
+    blockKey := fmt.Sprintf("%d", block.Index)
 
-        // Usar el índice del bloque como clave para almacenarlo en LevelDB
-        blockKey := fmt.Sprintf("%d", block.Index)
-
-        // Guardar el bloque serializado en LevelDB
-        err = db.Put([]byte(blockKey), blockData, nil)
-        if err != nil {
-            return fmt.Errorf("error al guardar el bloque %d en LevelDB: %v", block.Index, err)
-        }
+    // Guardar el bloque serializado en LevelDB
+    err = db.Put([]byte(blockKey), blockData, nil)
+    if err != nil {
+        return fmt.Errorf("error al guardar el bloque %d en LevelDB: %v", block.Index, err)
     }
-
+    fmt.Printf("Update blockchain fdhsjfsdhjs")
     return nil
 }

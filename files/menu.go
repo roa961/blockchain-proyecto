@@ -3,7 +3,7 @@ package files
 
 import (
 	
-	// "bufio"
+	"bufio"
 	// "context"
 	"encoding/json"
 	//"flag"
@@ -22,7 +22,7 @@ import (
 	//"reflect"
 )
 
-func Menu(db *leveldb.DB){
+func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 	configuration := Configuration{}
 	err := gonfig.GetConf(GetFileName(), &configuration)
 	if err != nil {
@@ -234,6 +234,15 @@ func Menu(db *leveldb.DB){
 				log.Fatal(err)
 			}
 			fmt.Printf("Bloque generado y guardado.\n")
+
+			mutex.Lock()
+                    bytes, err := json.Marshal(block)
+                    if err != nil {
+                        log.Println(err)
+                    }
+                    rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
+                    rw.Flush()
+                    mutex.Unlock()
 
 			fmt.Println("---FIN--TRANSACCION---")
 

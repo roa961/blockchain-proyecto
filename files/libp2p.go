@@ -53,57 +53,49 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, stopChan <-chan struct{}) {
                 continue
             }
 
-            // Intenta deserializar el string en un slice de Blocks
-            chain := make([]Block, 0)
-            err = json.Unmarshal([]byte(str), &chain)
+            // Intenta deserializar el string en un único Block
+            var block Block
+            err = json.Unmarshal([]byte(str), &block)
+            if err != nil {
+                log.Printf("Error al deserializar el bloque: %v\n", err)
+                continue
+            }
 
             if err != nil { // Si hay un error, asume que es un string simple y lo imprime
                 fmt.Printf("String recibido: %s\n", str)
-    
+            
                 if str == "1" { // Verifica si el string recibido es "1"
                     fmt.Println("Recibido '1', terminando ReadData...")
                     return // Termina la ejecución de la función (y por lo tanto de la goroutine)
                 }
-            }else { // Si no hay error, procesa los Blocks
+                
+            } else { // Si no hay error, procesa el Block
                 mutex.Lock()
-                //jsonPersona = chain
-                //bytes, err := json.MarshalIndent(jsonPersona, "", "  ")
-                if err != nil {
-                    log.Fatal(err)
-                }
-                //fmt.Printf("\x1b[32m%s\x1b[0m> ", string(bytes))
             
-                // Añadir bloques a allBlocks
-                for _, block := range chain {
-                    allBlocks = append(allBlocks, block)
+                // Imprimir detalles del bloque
+                fmt.Printf("Block:\n")
+                fmt.Printf("Index: %d\n", block.Index)
+                fmt.Printf("Timestamp: %d\n", block.Timestamp)
+                fmt.Printf("PreviousHash: %s\n", block.PreviousHash)
+                fmt.Printf("Hash: %s\n", block.Hash)
+                fmt.Printf("Transactions:\n")
+                for _, tx := range block.Transactions {
+                    fmt.Printf("\tSender: %s\n", tx.Sender)
+                    fmt.Printf("\tRecipient: %s\n", tx.Recipient)
+                    fmt.Printf("\tAmount: %.2f\n", tx.Amount)
+                    fmt.Printf("\tNonce: %d\n", tx.Nonce)
+                    // Si deseas imprimir la firma, necesitarás convertirla a un formato legible
+                    // Por ejemplo, convertirla a base64 o similar
+                }
+                fmt.Println("---------------------------")
+            
+                // Actualizar la cadena de bloques con el nuevo bloque
+                err := UpdateBlockChain(db, block)
+                if err != nil {
+                    log.Printf("Error al actualizar la cadena de bloques con el nuevo bloque: %v\n", err)
                 }
             
                 mutex.Unlock()
-
-                //DESCOMENTAR EL SCRIPT DE ABAJO PARA VER LOS BLOQUES ENTRANTES COMO ARREGLO DE BLOQUES
-
-                for _, block := range allBlocks {
-                    fmt.Printf("Block:\n")
-                    fmt.Printf("Index: %d\n", block.Index)
-                    fmt.Printf("Timestamp: %d\n", block.Timestamp)
-                    fmt.Printf("PreviousHash: %s\n", block.PreviousHash)
-                    fmt.Printf("Hash: %s\n", block.Hash)
-                    fmt.Printf("Transactions:\n")
-                    for _, tx := range block.Transactions {
-                        fmt.Printf("\tSender: %s\n", tx.Sender)
-                        fmt.Printf("\tRecipient: %s\n", tx.Recipient)
-                        fmt.Printf("\tAmount: %.2f\n", tx.Amount)
-                        fmt.Printf("\tNonce: %d\n", tx.Nonce)
-                        // Si deseas imprimir la firma, necesitarás convertirla a un formato legible
-                        // Por ejemplo, convertirla a base64 o similar
-                    }
-                    fmt.Println("---------------------------")
-                }
-
-                err := UpdateBlockChain(db, allBlocks)
-                if err != nil {
-                    log.Printf("Error al actualizar la cadena de bloques: %v\n", err)
-                }
             }
         }
     }
@@ -116,7 +108,7 @@ func WriteData(rw *bufio.ReadWriter, db *leveldb.DB, stopChan chan<- struct{}) {
     for {
         fmt.Println("Selecciona una opción:")
         fmt.Println("1. Enviar bloque")
-        fmt.Println("2. Enviar mensaje personalizado")
+        fmt.Println("2. Enviar mensaje ")
         fmt.Println("3. Mostrar menú")
         fmt.Println("4. Cerrar comunicación")
         fmt.Print("> ")
@@ -155,17 +147,17 @@ func WriteData(rw *bufio.ReadWriter, db *leveldb.DB, stopChan chan<- struct{}) {
             rw.Flush()
             mutex.Unlock()
         case "3":
-            Menu(db) // Llama a la función Menu
-            jsonPersona := GetBlock(db)
+            Menu(db,rw) // Llama a la función Menu
+            // jsonPersona := GetBlock(db)
 
-                    mutex.Lock()
-                    bytes, err := json.Marshal(jsonPersona)
-                    if err != nil {
-                        log.Println(err)
-                    }
-                    rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
-                    rw.Flush()
-                    mutex.Unlock()
+            //         mutex.Lock()
+            //         bytes, err := json.Marshal(jsonPersona)
+            //         if err != nil {
+            //             log.Println(err)
+            //         }
+            //         rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
+            //         rw.Flush()
+            //         mutex.Unlock()
         case "4":
             fmt.Println("Cerrando comunicación...")
             stopChan <- struct{}{} // Enviar señal para cortar la comunicación
