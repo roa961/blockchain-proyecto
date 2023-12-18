@@ -78,7 +78,7 @@ func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 
 	}
 
-	Amount, Name, Mnemonic, PublicKey, PrivateKey, err := Login(dbAccounts)
+	Amount, Name, Mnemonic, PublicKey, PrivateKey, err := Login(dbAccounts,rw)
 	if err != nil {
 		fmt.Printf("Error durante el login: %s\n", err)
 		return // O manejar el error como sea apropiado
@@ -140,6 +140,7 @@ func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 			fmt.Scan(&recipient)
 			//FUNCION VERIFICAR DESTINATARIO
 			existAccount :=  ExistAccount(dbAccounts,recipient)
+
 			if existAccount {
 				fmt.Printf("La cuenta '%s' existe.\n", recipient)
 			} else {

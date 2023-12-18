@@ -11,9 +11,9 @@ import (
 	"strings"
 	"sync"
 	//"time"
-
+    
 	mrand "math/rand"
-
+    
 	//"github.com/davecgh/go-spew/spew"
 	libp2p "github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p/core/crypto"
@@ -55,21 +55,41 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, stopChan <-chan struct{}) {
 
             // Intenta deserializar el string en un único Block
             var block Block
-            err = json.Unmarshal([]byte(str), &block)
-            if err != nil {
-                log.Printf("Error al deserializar el bloque: %v\n", err)
-                continue
-            }
+            errBlock := json.Unmarshal([]byte(str), &block)
 
-            if err != nil { // Si hay un error, asume que es un string simple y lo imprime
+            
+            if errBlock != nil{
                 fmt.Printf("String recibido: %s\n", str)
             
                 if str == "1" { // Verifica si el string recibido es "1"
                     fmt.Println("Recibido '1', terminando ReadData...")
                     return // Termina la ejecución de la función (y por lo tanto de la goroutine)
                 }
-                
-            } else { // Si no hay error, procesa el Block
+                if strings.HasPrefix(str, "Nombre: ") && strings.Contains(str, ", Monto: ") {
+                    // Extraer los datos de la cadena
+                    parts := strings.Split(str, ", Monto: ")
+                    nombrePart := parts[0]
+                    montoPart := parts[1]
+            
+                    nombre := strings.TrimPrefix(nombrePart, "nombre: ")
+                    montoStr := strings.TrimSpace(montoPart)
+                    
+                    // Convertir el monto a un número, si es necesario
+                    // monto, err := strconv.ParseFloat(montoStr, 64)
+                    // if err != nil {
+                    //     log.Printf("Error al convertir el monto a número: %v\n", err)
+                    //     return
+                    // }
+            
+                    // Aquí puedes manejar los datos extraídos (nombre y monto)
+                    fmt.Printf("Nombre extraído: %s\n", nombre)
+                    fmt.Printf("Monto extraído: %s\n", montoStr)
+                    
+                    // Ejemplo: Guardar o procesar la información de nombre y monto
+                }
+
+            }
+            if errBlock == nil {
                 mutex.Lock()
             
                 // Imprimir detalles del bloque
@@ -97,6 +117,7 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, stopChan <-chan struct{}) {
             
                 mutex.Unlock()
             }
+
         }
     }
 }

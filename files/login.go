@@ -3,7 +3,7 @@ package files
 import (
 	"crypto/ecdsa"
 	"fmt"
-
+	"bufio"
 	"github.com/syndtr/goleveldb/leveldb"
 
 	// "os"
@@ -88,7 +88,7 @@ func printResult(result Result) {
 	fmt.Printf("    Name: %s\n", result.PrivateKey.Curve.Name)
 }
 
-func Login(db *leveldb.DB) (int, string, string, PublicKey, PrivateKey, error) {
+func Login(db *leveldb.DB,rw *bufio.ReadWriter) (int, string, string, PublicKey, PrivateKey, error) {
 	fmt.Println("HORA DE IDENTIFICARSE")
 	var name string
 	fmt.Println("1. Crear cuenta")
@@ -140,6 +140,24 @@ func Login(db *leveldb.DB) (int, string, string, PublicKey, PrivateKey, error) {
 			log.Fatal(err)
 		}
 
+
+		mutex.Lock()
+		defer mutex.Unlock()
+
+		// Formatear un string con el nombre y el monto
+		mensaje := fmt.Sprintf("Nombre: %s, Monto: %.2f", account.Name, account.Amount)
+
+		// Enviar el mensaje formateado a través de rw
+		_, err = rw.WriteString(mensaje + "\n")
+		if err != nil {
+			log.Println("Error al escribir en rw:", err)
+			
+		}
+
+		rw.Flush()
+
+					
+		
 		return int(account.Amount), account.Name, account.Mnemonic, emptyPubK, emptyPrivK, nil
 
 	case 2:
