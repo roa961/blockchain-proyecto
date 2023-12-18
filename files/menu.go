@@ -52,31 +52,31 @@ func Menu(db *leveldb.DB){
 	}
 	defer dbAccounts.Close()
 
-	// transactions := []Transaction{
+	transactions := []Transaction{
 
-	// 	{
-	// 		Sender:    configuration.RootSender,
-	// 		Recipient: configuration.RootRecipient,
-	// 		Amount:    configuration.RootAmount,
-	// 		Nonce:     configuration.RootNonce,
-	// 	},
-	// }
+		{
+			Sender:    configuration.RootSender,
+			Recipient: configuration.RootRecipient,
+			Amount:    configuration.RootAmount,
+			Nonce:     configuration.RootNonce,
+		},
+	}
 
-	// iter_check := db.NewIterator(nil, nil)
-	// defer iter_check.Release()
-	// empty := !iter_check.Next()
-	// if empty {
+	iter_check := db.NewIterator(nil, nil)
+	defer iter_check.Release()
+	empty := !iter_check.Next()
+	if empty {
 
-	// 	//Se crea el bloque raíz con índice 1, previous hash "" y una transacción con información contenida en el config file
-	// 	block := GenerateBlock(1, "", transactions)
-	// 	if err := SaveBlock(db, block); err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	if err := SaveBlock(dbCache, block); err != nil {
-	// 		log.Fatal(err)
-	// 	}
+		//Se crea el bloque raíz con índice 1, previous hash "" y una transacción con información contenida en el config file
+		block := GenerateBlock(1, "", transactions)
+		if err := SaveBlock(db, block); err != nil {
+			log.Fatal(err)
+		}
+		if err := SaveBlock(dbCache, block); err != nil {
+			log.Fatal(err)
+		}
 
-	// }
+	}
 
 	Amount, Name, Mnemonic, PublicKey, PrivateKey, err := Login(dbAccounts)
 	if err != nil {
@@ -126,6 +126,7 @@ func Menu(db *leveldb.DB){
 			iter_cache.Next()
 			value = iter_cache.Value()
 			key_cache = iter_cache.Key()
+			
 
 			if err := json.Unmarshal(value, &block); err != nil {
 				log.Fatalf("Error al deserializar el bloque: %v", err)
@@ -161,8 +162,12 @@ func Menu(db *leveldb.DB){
 				return
 			}
 			finalAmount := SetNewAmount(dbAccounts, montoTransferir, Name)
+			if finalAmount == -1{
+				fmt.Println("hubo un error en el asginamiento del saldo")
+				return
+			}
 			fmt.Printf("Te quedaste con: %.2f\n", finalAmount) // Utiliza %.2f para dos decimales
-
+			Amount = int(finalAmount)
 			
 
 			transaction := []Transaction{
@@ -174,7 +179,7 @@ func Menu(db *leveldb.DB){
 				},
 			}
 
-			fmt.Println(transaction)
+			
 
 
 			//files.SignTransaction(PrivateKey,&transaction[0])

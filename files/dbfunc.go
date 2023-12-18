@@ -33,7 +33,7 @@ func ExistAccount(dbAccounts *leveldb.DB, recipient string) bool {
             return false
         }
         // Manejo de otros tipos de errores si es necesario
-        // Por ejemplo, podrías querer registrar estos errores o tratarlos de manera diferente
+        // Por ejemplo, podrías querer registrar estos errores o tratarlos de manera dferente
         return false
     }
 
@@ -47,45 +47,31 @@ func SetNewAmount(dbAccounts *leveldb.DB, amount float64, accountName string) fl
         log.Printf("Error al obtener la cuenta: %v\n", err)
         return -1
     }
+	
 	//data, err := db.Get([]byte(name), nil)
 	jsonString := string(accountData)
-	fmt.Printf("Datos JSON recuperados de la base de datos:\n%s\n", jsonString)
-
+	
 	var result Result
 	err2 := json.Unmarshal([]byte(jsonString), &result)
 	if err2 != nil {
 		fmt.Println("Error al deserializar JSON:", err)
 	}
-
-
-
-
-
-
-
-
-
-
-
-    // Deserializar los datos de la cuenta
-    var account Account
-    err = json.Unmarshal(accountData, &account)
-    if err != nil {
-        log.Printf("Error al deserializar la cuenta: %v\n", err)
-        return -1
-    }
-
+    fmt.Printf("Saldo Original: %d\n", result.Amount)
+		if err != nil {
+			log.Fatal(err)
+		}
     // Realizar la operación en el monto
-    account.Amount -= amount
+    result.Amount -= int(amount)
 
+    
     // Verificar si el nuevo monto es válido
-    if account.Amount < 0 {
+    if result.Amount < 0 {
         log.Println("El monto resultante no puede ser negativo")
         return -1
     }
 
     // Serializar la cuenta actualizada
-    updatedAccountData, err := json.Marshal(account)
+    updatedAccountData, err := json.Marshal(result)
     if err != nil {
         log.Printf("Error al serializar la cuenta actualizada: %v\n", err)
         return -1
@@ -97,5 +83,5 @@ func SetNewAmount(dbAccounts *leveldb.DB, amount float64, accountName string) fl
         return -1
     }
 
-    return account.Amount
+    return float64(result.Amount)
 }
