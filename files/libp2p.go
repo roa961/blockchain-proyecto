@@ -133,6 +133,7 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCa
                     fmt.Printf("Primer bloque recibido: %+v\n", blocks[0])
                     // Aquí puedes añadir más lógica para manejar los bloques
                     UpdateBlockChain(db,blocks[0])
+                    UpdateBlockChain(dbCache,blocks[0])
                 }
 				}
 

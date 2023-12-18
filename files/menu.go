@@ -117,7 +117,7 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 			var key_cache []byte
 			var value []byte
 			var block Block
-
+			
 			iter_cache.Next()
 			value = iter_cache.Value()
 			key_cache = iter_cache.Key()
@@ -214,7 +214,7 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 				log.Printf("Error deleting key %s: %v", key_cache, err)
 			}
 
-			if err := SaveBlock(db, block); err != nil {
+			if err := UpdateBlockChain(db, block); err != nil {
 				log.Fatal(err)
 			}
 
