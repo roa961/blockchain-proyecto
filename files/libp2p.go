@@ -148,10 +148,14 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCa
 				fmt.Printf("PreviousHash: %s\n", block.PreviousHash)
 				fmt.Printf("Hash: %s\n", block.Hash)
 				fmt.Printf("Transactions:\n")
+                var amountSpended float64
+                var recipient string
 				for _, tx := range block.Transactions {
 					fmt.Printf("\tSender: %s\n", tx.Sender)
 					fmt.Printf("\tRecipient: %s\n", tx.Recipient)
+                    recipient = tx.Recipient
 					fmt.Printf("\tAmount: %.2f\n", tx.Amount)
+                    amountSpended = tx.Amount
 					fmt.Printf("\tNonce: %d\n", tx.Nonce)
 					// Si deseas imprimir la firma, necesitarás convertirla a un formato legible
 					// Por ejemplo, convertirla a base64 o similar
@@ -160,10 +164,13 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCa
 
 				// Actualizar la cadena de bloques con el nuevo bloque
 				err := UpdateBlockChain(db,dbCache ,block)
+                finalAmountDestiny := AddAmountToAccount(dbAccounts,amountSpended,recipient)
+                fmt.Printf("%s quedó con %d unidades\n", recipient, finalAmountDestiny)
 				//err := SaveBlock(db, block)
 				if err != nil {
 					log.Printf("Error al actualizar la cadena de bloques con el nuevo bloque: %v\n", err)
 				}
+
 
 				
 			}

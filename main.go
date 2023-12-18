@@ -1,3 +1,9 @@
+// Dear programmer, when I made this code only God and I knew what I was doing, now only God knows. 
+// If you were successful optimizing good for you, if not increase the counter.
+// total attempts=23
+
+
+
 package main
 
 import (
