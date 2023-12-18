@@ -1,15 +1,13 @@
 package files
 
-
 import (
-	
 	"bufio"
 	// "context"
 	"encoding/json"
 	//"flag"
 	"fmt"
 	"log"
-	"os"
+
 	"github.com/tkanos/gonfig"
 	// net "github.com/libp2p/go-libp2p/core/network"
 	// peer "github.com/libp2p/go-libp2p/core/peer"
@@ -18,21 +16,20 @@ import (
 	// ma "github.com/multiformats/go-multiaddr"
 	"github.com/syndtr/goleveldb/leveldb"
 	//"github.com/tkanos/gonfig"
-
 	//"reflect"
 )
 
-func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
+func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio.ReadWriter) {
 	configuration := Configuration{}
 	err := gonfig.GetConf(GetFileName(), &configuration)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(500)
+		// os.Exit(500)
 	}
 
-	//dbPath := configuration.DBPath
-	dbPath_cache := configuration.DBCachePath
-	dbPath_accounts := configuration.DBAccountsPath
+	// //dbPath := configuration.DBPath
+	// dbPath_cache := configuration.DBCachePath
+	// dbPath_accounts := configuration.DBAccountsPath
 
 	// Abrir la base de datos (creará una si no existe)
 	// db, err := leveldb.OpenFile(dbPath, nil)
@@ -40,17 +37,17 @@ func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 	// 	log.Fatal(err)
 	// }
 	//defer db.Close()
-	dbCache, err := leveldb.OpenFile(dbPath_cache, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer dbCache.Close()
-	dbAccounts, err := leveldb.OpenFile(dbPath_accounts, nil)
+	// dbCache, err := leveldb.OpenFile(dbPath_cache, nil)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer dbCache.Close()
+	// dbAccounts, err := leveldb.OpenFile(dbPath_accounts, nil)
 
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer dbAccounts.Close()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer dbAccounts.Close()
 
 	transactions := []Transaction{
 
@@ -78,7 +75,7 @@ func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 
 	}
 
-	Amount, Name, Mnemonic, PublicKey, PrivateKey, err := Login(dbAccounts,rw)
+	Amount, Name, Mnemonic, PublicKey, PrivateKey, err := Login(dbAccounts, rw)
 	if err != nil {
 		fmt.Printf("Error durante el login: %s\n", err)
 		return // O manejar el error como sea apropiado
@@ -90,7 +87,6 @@ func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 	fmt.Printf("name: %s\n", Name)
 	fmt.Printf("Public: %s\n", PublicKey)
 	fmt.Printf("Private: %s\n", PrivateKey)
-
 
 	for {
 		// Mostrar el menú
@@ -122,11 +118,9 @@ func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 			var value []byte
 			var block Block
 
-			
 			iter_cache.Next()
 			value = iter_cache.Value()
 			key_cache = iter_cache.Key()
-			
 
 			if err := json.Unmarshal(value, &block); err != nil {
 				log.Fatalf("Error al deserializar el bloque: %v", err)
@@ -139,7 +133,7 @@ func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 			var recipient string
 			fmt.Scan(&recipient)
 			//FUNCION VERIFICAR DESTINATARIO
-			existAccount :=  ExistAccount(dbAccounts,recipient)
+			existAccount := ExistAccount(dbAccounts, recipient)
 
 			if existAccount {
 				fmt.Printf("La cuenta '%s' existe.\n", recipient)
@@ -147,7 +141,6 @@ func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 				fmt.Printf("La cuenta '%s' no existe.\n", recipient)
 				continue
 			}
-			
 
 			fmt.Print("Ingrese el monto a transferir: ")
 			var montoTransferir float64
@@ -163,13 +156,12 @@ func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 				return
 			}
 			finalAmount := SetNewAmount(dbAccounts, montoTransferir, Name)
-			if finalAmount == -1{
+			if finalAmount == -1 {
 				fmt.Println("hubo un error en el asginamiento del saldo")
 				return
 			}
 			fmt.Printf("Te quedaste con: %.2f\n", finalAmount) // Utiliza %.2f para dos decimales
 			Amount = int(finalAmount)
-			
 
 			transaction := []Transaction{
 				{
@@ -180,28 +172,23 @@ func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 				},
 			}
 
-			
-
-
 			//files.SignTransaction(PrivateKey,&transaction[0])
 			//ItIsValid := files.VerifySignature(PublicKey, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
 			//if ItIsValid {
-				//fmt.Println("La firma es válida y fue firmado por Bob.")
+			//fmt.Println("La firma es válida y fue firmado por Bob.")
 			//} else {
-				//fmt.Println("La firma es inválida.")
+			//fmt.Println("La firma es inválida.")
 			//}
 
 			//if receiver == 1 {
-				//files.SignTransaction(privKey1, &transaction[0])
-				//ItIsValid := files.VerifySignature(pubKey1, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
-				//if ItIsValid {
+			//files.SignTransaction(privKey1, &transaction[0])
+			//ItIsValid := files.VerifySignature(pubKey1, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
+			//if ItIsValid {
 
-					//fmt.Println("La firma es válida y fue firmado por Bob.")
-				//} else {
-					//fmt.Println("La firma es inválida.")
-				//}
-
-
+			//fmt.Println("La firma es válida y fue firmado por Bob.")
+			//} else {
+			//fmt.Println("La firma es inválida.")
+			//}
 
 			// if receiver == 1 {
 			// 	files.SignTransaction(privKey1, &transaction[0])
@@ -237,13 +224,13 @@ func Menu(db *leveldb.DB, rw *bufio.ReadWriter){
 			fmt.Printf("Bloque generado y guardado.\n")
 
 			mutex.Lock()
-                    bytes, err := json.Marshal(block)
-                    if err != nil {
-                        log.Println(err)
-                    }
-                    rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
-                    rw.Flush()
-                    mutex.Unlock()
+			bytes, err := json.Marshal(block)
+			if err != nil {
+				log.Println(err)
+			}
+			rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
+			rw.Flush()
+			mutex.Unlock()
 
 			fmt.Println("---FIN--TRANSACCION---")
 

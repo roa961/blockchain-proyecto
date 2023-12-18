@@ -1,9 +1,10 @@
 package files
 
 import (
+	"bufio"
 	"crypto/ecdsa"
 	"fmt"
-	"bufio"
+
 	"github.com/syndtr/goleveldb/leveldb"
 
 	// "os"
@@ -87,8 +88,24 @@ func printResult(result Result) {
 	fmt.Printf("    BitSize: %d\n", result.PrivateKey.Curve.BitSize)
 	fmt.Printf("    Name: %s\n", result.PrivateKey.Curve.Name)
 }
+func GetAccount(db *leveldb.DB, name string) (int, string, string, PublicKey, PrivateKey, error) {
+	data, err := db.Get([]byte(name), nil)
+	jsonString := string(data)
+	var result Result
+	err2 := json.Unmarshal([]byte(jsonString), &result)
 
-func Login(db *leveldb.DB,rw *bufio.ReadWriter) (int, string, string, PublicKey, PrivateKey, error) {
+	if err2 != nil {
+		fmt.Println("Error al deserializar JSON:", err)
+	}
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return result.Amount, result.Name, result.Mnemonic, result.PublicKey, result.PrivateKey, nil
+}
+
+func Login(db *leveldb.DB, rw *bufio.ReadWriter) (int, string, string, PublicKey, PrivateKey, error) {
 	fmt.Println("HORA DE IDENTIFICARSE")
 	var name string
 	fmt.Println("1. Crear cuenta")
@@ -96,106 +113,69 @@ func Login(db *leveldb.DB,rw *bufio.ReadWriter) (int, string, string, PublicKey,
 	fmt.Print("Seleccione una opción (1 o 2): ")
 	var emptyPubK PublicKey
 	var emptyPrivK PrivateKey
-	var option int
-	fmt.Scan(&option)
+	for {
+		var option int
+		fmt.Scan(&option)
 
+		switch option {
+		case 1:
+			// 	fmt.Println("CREAR CUENTA")
+			fmt.Print("Ingrese su nombre: ")
+			fmt.Scan(&name)
+			nombre, err := db.Get([]byte(name), nil)
+			if nombre != nil {
+				fmt.Println("Usuario ya existente")
+				return GetAccount(db, name)
+			}
+			privKey, pubKey, mnemonic, err := GenerateKeys(name)
 
+			if err != nil {
+				fmt.Println("Error:", err)
+			} else {
+				fmt.Println("Parámetros para el usuario " + name)
+				fmt.Println("Private Key:", privKey)
+				fmt.Println("Public Key:", pubKey)
+				fmt.Println("Mnemonic:", mnemonic)
+			}
+			account := Account{
+				PublicKey:    pubKey,
+				PrivateKey:   privKey,
+				Mnemonic:     mnemonic,
+				Name:         name,
+				Amount:       1000,
+				Transactions: 0,
+			}
 
-	switch option {
-	case 1:
-		// 	fmt.Println("CREAR CUENTA")
-		fmt.Print("Ingrese su nombre: ")
-		fmt.Scan(&name)
-		nombre, err := db.Get([]byte(name), nil)
-		if nombre != nil {
-			fmt.Print("Usuario ya existente")
-			return 0, "", "", emptyPubK, emptyPrivK, err
+			data, err := json.Marshal(account)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = db.Put([]byte(account.Name), data, nil)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			mutex.Lock()
+			defer mutex.Unlock()
+
+			rw.WriteString(fmt.Sprintf("%s\n", string(data)))
+			rw.Flush()
+
+			return int(account.Amount), account.Name, account.Mnemonic, emptyPubK, emptyPrivK, nil
+
+		case 2:
+			fmt.Println("INDIQUE SU NOMBRE")
+			fmt.Print("Ingrese su nombre de cuenta: ")
+			fmt.Scan(&name)
+
+			return GetAccount(db, name)
+
+		default:
+			fmt.Println("Opción no válida. Por favor, seleccione 1 o 2.")
 		}
-		privKey, pubKey, mnemonic, err := GenerateKeys(name)
-
-		if err != nil {
-			fmt.Println("Error:", err)
-		} else {
-			fmt.Println("Parámetros para el usuario " + name)
-			fmt.Println("Private Key:", privKey)
-			fmt.Println("Public Key:", pubKey)
-			fmt.Println("Mnemonic:", mnemonic)
-		}
-		account := Account{
-			PublicKey:    pubKey,
-			PrivateKey:   privKey,
-			Mnemonic:     mnemonic,
-			Name:         name,
-			Amount:       1000,
-			Transactions: 0,
-		}
-
-		data, err := json.Marshal(account)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		err = db.Put([]byte(account.Name), data, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-
-		mutex.Lock()
-		defer mutex.Unlock()
-
-		// Formatear un string con el nombre y el monto
-		mensaje := fmt.Sprintf("Nombre: %s, Monto: %.2f", account.Name, account.Amount)
-
-		// Enviar el mensaje formateado a través de rw
-		_, err = rw.WriteString(mensaje + "\n")
-		if err != nil {
-			log.Println("Error al escribir en rw:", err)
-			
-		}
-
-		rw.Flush()
-
-					
-		
-		return int(account.Amount), account.Name, account.Mnemonic, emptyPubK, emptyPrivK, nil
-
-	case 2:
-		fmt.Println("INDIQUE SU NOMBRE")
-		fmt.Print("Ingrese su nombre de cuenta: ")
-		fmt.Scan(&name)
-
-		// Obtener la información de la cuenta desde la base de datos
-		data, err := db.Get([]byte(name), nil)
-
-		jsonString := string(data)
-		fmt.Printf("Datos JSON recuperados de la base de datos:\n%s\n", jsonString)
-
-		var result Result
-		err2 := json.Unmarshal([]byte(jsonString), &result)
-		if err2 != nil {
-			fmt.Println("Error al deserializar JSON:", err)
-
-		}
-
-		// Llamar a la función printResult
-		//printResult(result)
-
-		// Acceder al campo "Amount"
-		//fmt.Printf("Amount: %d\n", result.Amount)
-		fmt.Printf("Clave Pública:\nX: %d\nY", result.PublicKey)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// dataType := reflect.TypeOf(result.PublicKey)
-		// fmt.Printf("Tipo: %v\n", dataType)
-		return result.Amount, result.Name, result.Mnemonic, result.PublicKey, result.PrivateKey, nil
-
-	default:
-		return 0, "", "", emptyPubK, emptyPrivK, nil
 	}
- 
- 
+
 }
 
 //	func saveAccount(db *leveldb.DB, account Account) error {
