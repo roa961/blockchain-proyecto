@@ -23,9 +23,10 @@ import (
 )
 
 var mutex = &sync.Mutex{}
+var allBlocks []Block
 
 func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, stopChan <-chan struct{}) {
-    jsonPersona := GetBlock(db)
+    //jsonPersona := GetBlock(db)
     
     
     for {
@@ -65,13 +66,44 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, stopChan <-chan struct{}) {
                 }
             }else { // Si no hay error, procesa los Blocks
                 mutex.Lock()
-                jsonPersona = chain
-                bytes, err := json.MarshalIndent(jsonPersona, "", "  ")
+                //jsonPersona = chain
+                //bytes, err := json.MarshalIndent(jsonPersona, "", "  ")
                 if err != nil {
                     log.Fatal(err)
                 }
-                fmt.Printf("\x1b[32m%s\x1b[0m> ", string(bytes))
+                //fmt.Printf("\x1b[32m%s\x1b[0m> ", string(bytes))
+            
+                // Añadir bloques a allBlocks
+                for _, block := range chain {
+                    allBlocks = append(allBlocks, block)
+                }
+            
                 mutex.Unlock()
+
+                //DESCOMENTAR EL SCRIPT DE ABAJO PARA VER LOS BLOQUES ENTRANTES COMO ARREGLO DE BLOQUES
+
+                for _, block := range allBlocks {
+                    fmt.Printf("Block:\n")
+                    fmt.Printf("Index: %d\n", block.Index)
+                    fmt.Printf("Timestamp: %d\n", block.Timestamp)
+                    fmt.Printf("PreviousHash: %s\n", block.PreviousHash)
+                    fmt.Printf("Hash: %s\n", block.Hash)
+                    fmt.Printf("Transactions:\n")
+                    for _, tx := range block.Transactions {
+                        fmt.Printf("\tSender: %s\n", tx.Sender)
+                        fmt.Printf("\tRecipient: %s\n", tx.Recipient)
+                        fmt.Printf("\tAmount: %.2f\n", tx.Amount)
+                        fmt.Printf("\tNonce: %d\n", tx.Nonce)
+                        // Si deseas imprimir la firma, necesitarás convertirla a un formato legible
+                        // Por ejemplo, convertirla a base64 o similar
+                    }
+                    fmt.Println("---------------------------")
+                }
+
+                err := UpdateBlockChain(db, allBlocks)
+                if err != nil {
+                    log.Printf("Error al actualizar la cadena de bloques: %v\n", err)
+                }
             }
         }
     }
@@ -124,7 +156,16 @@ func WriteData(rw *bufio.ReadWriter, db *leveldb.DB, stopChan chan<- struct{}) {
             mutex.Unlock()
         case "3":
             Menu(db) // Llama a la función Menu
+            jsonPersona := GetBlock(db)
 
+                    mutex.Lock()
+                    bytes, err := json.Marshal(jsonPersona)
+                    if err != nil {
+                        log.Println(err)
+                    }
+                    rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
+                    rw.Flush()
+                    mutex.Unlock()
         case "4":
             fmt.Println("Cerrando comunicación...")
             stopChan <- struct{}{} // Enviar señal para cortar la comunicación
