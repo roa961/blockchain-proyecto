@@ -23,7 +23,7 @@ import (
 	//"github.com/syndtr/goleveldb/leveldb/storage"
 	"errors"
 	//"github.com/tkanos/gonfig"
-	//	"reflect"
+	//	"reflect
 )
 
 func ExistAccount(dbAccounts *leveldb.DB, recipient string) bool {
@@ -86,29 +86,51 @@ func SetNewAmount(dbAccounts *leveldb.DB, amount float64, accountName string) fl
 
 	return float64(result.Amount)
 }
+func findAvailableIndex(db *leveldb.DB, startIndex int) (int, error) {
+	for {
+		indexKey := []byte(fmt.Sprintf("%d", startIndex))
+		_, err := db.Get(indexKey, nil)
+		if err == leveldb.ErrNotFound {
+			return startIndex, nil
+		} else if err != nil {
+			return 0, err
+		}
+		// Si el índice ya está en uso, incrementamos y probamos de nuevo
+		startIndex++
+	}
+}
+
 func UpdateBlockChain(db, dbCache *leveldb.DB, block Block) error {
-    // Serializar el bloque a JSON
-    blockData, err := json.Marshal(block)
-    if err != nil {
-        return fmt.Errorf("error al serializar el bloque %d: %v", block.Index, err)
-    }
+	// Serializar el bloque a JSON
 
-    // Usar el índice del bloque como clave para almacenarlo en la base de datos principal (db)
-    blockKey := fmt.Sprintf("%d", block.Index)
-    err = db.Put([]byte(blockKey), blockData, nil)
-    if err != nil {
-        return fmt.Errorf("error al guardar el bloque %d en LevelDB principal: %v", block.Index, err)
-    }
+	availableIndex, err := findAvailableIndex(db, block.Index)
+	if err != nil {
+		return err
+	}
+	block.Index = availableIndex
+	block.Transactions[0].Nonce = availableIndex
 
-    // Usar una clave única con prefijo para almacenar el bloque en la base de datos cache (dbCache)
-    cacheKey := fmt.Sprintf("block-%d", block.Index)
-    err = dbCache.Put([]byte(cacheKey), blockData, nil)
-    if err != nil {
-        return fmt.Errorf("error al guardar el bloque %d en dbCache: %v", block.Index, err)
-    }
+	// Usar el índice del bloque como clave para almacenarlo en la base de datos principal (db)
+	blockKey := fmt.Sprintf("%d", block.Index)
 
-    fmt.Printf("Bloque %d actualizado en la cadena de bloques y en la caché.\n", block.Index)
-    return nil
+	blockData, err := json.Marshal(block)
+	if err != nil {
+		return fmt.Errorf("error al serializar el bloque %d: %v", block.Index, err)
+	}
+	err = db.Put([]byte(blockKey), blockData, nil)
+	if err != nil {
+		return fmt.Errorf("error al guardar el bloque %d en LevelDB principal: %v", block.Index, err)
+	}
+
+	// Usar una clave única con prefijo para almacenar el bloque en la base de datos cache (dbCache)
+	cacheKey := fmt.Sprintf("block-%d", block.Index)
+	err = dbCache.Put([]byte(cacheKey), blockData, nil)
+	if err != nil {
+		return fmt.Errorf("error al guardar el bloque %d en dbCache: %v", block.Index, err)
+	}
+
+	fmt.Printf("Bloque %d actualizado en la cadena de bloques y en la caché.\n", block.Index)
+	return nil
 }
 
 func PrintAllAccounts(dbAccounts *leveldb.DB) {
@@ -138,6 +160,7 @@ func ResetBlockChain(db *leveldb.DB) {
 		db.Delete([]byte(key), nil)
 	}
 }
+
 func AddAmountToAccount(dbAccounts *leveldb.DB, amountToAdd float64, accountName string) float64 {
     // Obtener la cuenta desde la base de datos
     accountData, err := dbAccounts.Get([]byte(accountName), nil)
@@ -173,4 +196,5 @@ func AddAmountToAccount(dbAccounts *leveldb.DB, amountToAdd float64, accountName
 
     return float64(result.Amount)
 }
+
 
