@@ -148,14 +148,22 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCa
 				fmt.Printf("PreviousHash: %s\n", block.PreviousHash)
 				fmt.Printf("Hash: %s\n", block.Hash)
 				fmt.Printf("Transactions:\n")
+                var amountSpended float64
+                var recipient string
+                var sender string
 				for _, tx := range block.Transactions {
 					fmt.Printf("\tSender: %s\n", tx.Sender)
+                    sender = tx.Sender
 					fmt.Printf("\tRecipient: %s\n", tx.Recipient)
+                    recipient = tx.Recipient
 					fmt.Printf("\tAmount: %.2f\n", tx.Amount)
-					fmt.Printf("\tNonce: %d\n", tx.Nonce)
-					// Si deseas imprimir la firma, necesitarás convertirla a un formato legible
-					// Por ejemplo, convertirla a base64 o similar
+                    amountSpended = tx.Amount
+					fmt.Printf("\tNonce: %d\n", tx.Nonce)   
 				}
+                finalAmountDestiny := AddAmountToAccount(dbAccounts,amountSpended,recipient)
+                fmt.Printf("%s quedó con %d unidades\n", recipient, finalAmountDestiny)
+                finalAmountOrigin := SetNewAmount(dbAccounts,amountSpended,sender)
+                fmt.Printf("%s quedó con %d unidades\n", sender, finalAmountOrigin)
 				fmt.Println("---------------------------")
 
 				// Actualizar la cadena de bloques con el nuevo bloque

@@ -75,7 +75,8 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 		fmt.Println("1. Hacer una transaccion")
 		fmt.Println("2. Leer transacción")
 		fmt.Println("3. Mostrar cadena de bloques")
-		fmt.Println("4. Salir")
+		fmt.Println("4. Mostrar estado de cuentas")
+		fmt.Println("5. Salir")
 		fmt.Println("-----------------------------------")
 		// Leer la opción del usuario
 		var option int
@@ -142,7 +143,8 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 			}
 			fmt.Printf("Te quedaste con: %.2f\n", finalAmount) // Utiliza %.2f para dos decimales
 			Amount = int(finalAmount)
-
+			finalAmountDestiny := AddAmountToAccount(dbAccounts,montoTransferir,recipient)
+			fmt.Printf("%s quedó con %d unidades\n", recipient, finalAmountDestiny)
 			transaction := []Transaction{
 				{
 					Sender:    Name,
@@ -243,6 +245,8 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 		case 3:
 			PrintBlockChain(db)
 		case 4:
+			PrintAllAccounts(dbAccounts)
+		case 5:
 			fmt.Println("Saliendo del programa.")
 			defer dbCache.Close()
 			return
