@@ -44,9 +44,6 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCa
 			// Quita espacios en blanco y saltos de línea
 			str = strings.TrimSpace(str)
 
-			// Imprime lo que se leyó, independientemente de su contenido
-			fmt.Printf("Received: %s\n", str)
-
 			if str == "" {
 				fmt.Printf("Cadena vacía recibida\n")
 				continue
@@ -57,123 +54,63 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCa
 			errBlock := json.Unmarshal([]byte(str), &block)
 
 			if errBlock != nil {
-				fmt.Printf("String recibido: %s\n", str)
-
 				if str == "1" { // Verifica si el string recibido es "1"
 					fmt.Println("Recibido '1', terminando ReadData...")
 					return // Termina la ejecución de la función (y por lo tanto de la goroutine)
 				}
 
-                
-				if strings.HasPrefix(str, "Nombre: ") && strings.Contains(str, ", Monto: ") {
-					// Extraer los datos de la cadena
-					parts := strings.Split(str, ", Monto: ")
-					nombrePart := parts[0]
-					montoPart := parts[1]
-
-					nombre := strings.TrimPrefix(nombrePart, "nombre: ")
-					montoStr := strings.TrimSpace(montoPart)
-					// amount, err := strconv.ParseFloat(montoStr, 64)
-					// if err != nil {
-					// 	log.Printf("Error al convertir el monto a número: %v\n", err)
-					// 	return
-					// }
-					// account := Account{
-					// 	Name:   nombre,
-					// 	Amount: amount,
-					// }
-
-					mutex.Lock()
-					dbAccounts.Put([]byte(nombre), []byte(montoStr), nil)
-					PrintAllAccounts(dbAccounts)
-
-					mutex.Unlock()
-					// Convertir el monto a un número, si es necesario
-					// monto, err := strconv.ParseFloat(montoStr, 64)
-					// if err != nil {
-					//     log.Printf("Error al convertir el monto a número: %v\n", err)
-					//     return
-					// }
-
-					// Aquí puedes manejar los datos extraídos (nombre y monto)
-					fmt.Printf("Nombre extraído: %s\n", nombre)
-					fmt.Printf("Monto extraído: %s\n", montoStr)
-
-					// Ejemplo: Guardar o procesar la información de nombre y monto
-				}
 				if strings.HasPrefix(str, "{\"PublicKey\":{\"Curve\":{") {
 					var account Account
 					err := json.Unmarshal([]byte(str), &account)
 					if err != nil {
-						log.Println(err)
+
 					}
 					data, err := json.Marshal(account)
-					if err != nil {
-						log.Println(err)
-					}
 					mutex.Lock()
 					dbAccounts.Put([]byte(account.Name), data, nil)
-					PrintAllAccounts(dbAccounts)
 					mutex.Unlock()
 
 				}
 
-                if strings.HasPrefix(str, "[{\"Index\":1,\"Timestamp\"") {
-					
-                    var blocks []Block
-                err := json.Unmarshal([]byte(str), &blocks)
-                if err != nil {
-                    log.Printf("Error al deserializar el JSON en blocks: %v\n", err)
-                    return
-                }
+				if strings.HasPrefix(str, "[{\"Index\":1,\"Timestamp\"") {
 
-                // Ahora puedes trabajar con el slice de blocks
-                // Por ejemplo, imprimir el primer bloque si existe
-                if len(blocks) > 0 {
-                    fmt.Printf("Primer bloque recibido: %+v\n", blocks[0])
-                    // Aquí puedes añadir más lógica para manejar los bloques
-                    UpdateBlockChain(db,dbCache,blocks[0])
-                    
-                }
+					var blocks []Block
+					err := json.Unmarshal([]byte(str), &blocks)
+					if err != nil {
+						log.Printf("Error al deserializar el JSON en blocks: %v\n", err)
+						return
+					}
+
+					// Ahora puedes trabajar con el slice de blocks
+					// Por ejemplo, imprimir el primer bloque si existe
+					if len(blocks) > 0 {
+						// Aquí puedes añadir más lógica para manejar los bloques
+						UpdateBlockChain(db, dbCache, blocks[0])
+
+					}
 				}
 
 			}
 			if errBlock == nil {
-				
 
 				// Imprimir detalles del bloque
-				fmt.Printf("Block:\n")
-				fmt.Printf("Index: %d\n", block.Index)
-				fmt.Printf("Timestamp: %d\n", block.Timestamp)
-				fmt.Printf("PreviousHash: %s\n", block.PreviousHash)
-				fmt.Printf("Hash: %s\n", block.Hash)
-				fmt.Printf("Transactions:\n")
-                var amountSpended float64
-                var recipient string
-                var sender string
+				var amountSpended float64
+				var recipient string
+				var sender string
 				for _, tx := range block.Transactions {
-					fmt.Printf("\tSender: %s\n", tx.Sender)
-                    sender = tx.Sender
-					fmt.Printf("\tRecipient: %s\n", tx.Recipient)
-                    recipient = tx.Recipient
-					fmt.Printf("\tAmount: %.2f\n", tx.Amount)
-                    amountSpended = tx.Amount
-					fmt.Printf("\tNonce: %d\n", tx.Nonce)   
+					sender = tx.Sender
+					recipient = tx.Recipient
+					amountSpended = tx.Amount
 				}
-                finalAmountDestiny := AddAmountToAccount(dbAccounts,amountSpended,recipient)
-                fmt.Printf("%s quedó con %d unidades\n", recipient, finalAmountDestiny)
-                finalAmountOrigin := SetNewAmount(dbAccounts,amountSpended,sender)
-                fmt.Printf("%s quedó con %d unidades\n", sender, finalAmountOrigin)
-				fmt.Println("---------------------------")
-
+				AddAmountToAccount(dbAccounts, amountSpended, recipient)
+				SetNewAmount(dbAccounts, amountSpended, sender)
 				// Actualizar la cadena de bloques con el nuevo bloque
-				err := UpdateBlockChain(db,dbCache ,block)
+				err := UpdateBlockChain(db, dbCache, block)
 				//err := SaveBlock(db, block)
 				if err != nil {
 					log.Printf("Error al actualizar la cadena de bloques con el nuevo bloque: %v\n", err)
 				}
 
-				
 			}
 
 		}
@@ -185,10 +122,9 @@ func WriteData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbC
 
 	for {
 		fmt.Println("Selecciona una opción:")
-		fmt.Println("1. Enviar bloque")
-		fmt.Println("2. Enviar mensaje ")
-		fmt.Println("3. Mostrar menú")
-		fmt.Println("4. Cerrar comunicación")
+		fmt.Println("1. Enviar mensaje ")
+		fmt.Println("2. Mostrar menú")
+		fmt.Println("3. Cerrar comunicación")
 		fmt.Print("> ")
 
 		option, err := stdReader.ReadString('\n')
@@ -199,19 +135,8 @@ func WriteData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbC
 		option = strings.TrimSpace(option) // Elimina espacios y saltos de línea
 
 		switch option {
+
 		case "1":
-			jsonPersona := GetBlock(db)
-
-			mutex.Lock()
-			bytes, err := json.Marshal(jsonPersona)
-			if err != nil {
-				log.Println(err)
-			}
-			rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
-			rw.Flush()
-			mutex.Unlock()
-
-		case "2":
 			fmt.Print("Ingresa tu mensaje: ")
 			message, err := stdReader.ReadString('\n')
 			if err != nil {
@@ -224,7 +149,7 @@ func WriteData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbC
 			rw.WriteString(fmt.Sprintf("%s\n", message))
 			rw.Flush()
 			mutex.Unlock()
-		case "3":
+		case "2":
 			Menu(db, dbAccounts, dbCache, rw) // Llama a la función Menu
 			// jsonPersona := GetBlock(db)
 
@@ -236,7 +161,7 @@ func WriteData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbC
 			//         rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
 			//         rw.Flush()
 			//         mutex.Unlock()
-		case "4":
+		case "3":
 			fmt.Println("Cerrando comunicación...")
 			stopChan <- struct{}{} // Enviar señal para cortar la comunicación
 			return

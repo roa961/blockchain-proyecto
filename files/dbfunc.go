@@ -58,7 +58,6 @@ func SetNewAmount(dbAccounts *leveldb.DB, amount float64, accountName string) fl
 	if err2 != nil {
 		fmt.Println("Error al deserializar JSON:", err)
 	}
-	fmt.Printf("Saldo Original: %d\n", result.Amount)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -129,17 +128,30 @@ func UpdateBlockChain(db, dbCache *leveldb.DB, block Block) error {
 		return fmt.Errorf("error al guardar el bloque %d en dbCache: %v", block.Index, err)
 	}
 
-	fmt.Printf("Bloque %d actualizado en la cadena de bloques y en la caché.\n", block.Index)
 	return nil
 }
 
 func PrintAllAccounts(dbAccounts *leveldb.DB) {
 	iter := dbAccounts.NewIterator(nil, nil)
+	defer iter.Release()
+
 	for iter.Next() {
 		key := iter.Key()
 		value := iter.Value()
-		fmt.Printf("Clave: %s, Valor: %s\n", key, value)
 
+		var result Result
+		err := json.Unmarshal(value, &result)
+		if err != nil {
+			log.Printf("Error al deserializar la cuenta para la clave %v: %v\n", key, err)
+			continue
+		}
+
+		// Usa %d para enteros en lugar de %f
+		fmt.Printf("Nombre: %v, Monto: %v\n", result.Name, result.Amount)
+	}
+
+	if err := iter.Error(); err != nil {
+		log.Printf("Error durante la iteración: %v\n", err)
 	}
 }
 func ResetAccounts(dbAccounts *leveldb.DB) {
@@ -162,39 +174,35 @@ func ResetBlockChain(db *leveldb.DB) {
 }
 
 func AddAmountToAccount(dbAccounts *leveldb.DB, amountToAdd float64, accountName string) float64 {
-    // Obtener la cuenta desde la base de datos
-    accountData, err := dbAccounts.Get([]byte(accountName), nil)
-    if err != nil {
-        log.Printf("Error al obtener la cuenta: %v\n", err)
-        return -1
-    }
+	// Obtener la cuenta desde la base de datos
+	accountData, err := dbAccounts.Get([]byte(accountName), nil)
+	if err != nil {
+		log.Printf("Error al obtener la cuenta: %v\n", err)
+		return -1
+	}
 
-    // Deserializar la cuenta
-    var result Result
-    err = json.Unmarshal(accountData, &result)
-    if err != nil {
-        log.Printf("Error al deserializar JSON: %v\n", err)
-        return -1
-    }
-    fmt.Printf("Saldo Original: %.2f\n", result.Amount)
+	// Deserializar la cuenta
+	var result Result
+	err = json.Unmarshal(accountData, &result)
+	if err != nil {
+		log.Printf("Error al deserializar JSON: %v\n", err)
+		return -1
+	}
+	// Sumar el monto a la cuenta
+	result.Amount += int(amountToAdd)
 
-    // Sumar el monto a la cuenta
-    result.Amount += int(amountToAdd)
+	// Serializar la cuenta actualizada
+	updatedAccountData, err := json.Marshal(result)
+	if err != nil {
+		log.Printf("Error al serializar la cuenta actualizada: %v\n", err)
+		return -1
+	}
 
-    // Serializar la cuenta actualizada
-    updatedAccountData, err := json.Marshal(result)
-    if err != nil {
-        log.Printf("Error al serializar la cuenta actualizada: %v\n", err)
-        return -1
-    }
+	// Guardar la cuenta actualizada en la base de datos
+	if err := dbAccounts.Put([]byte(accountName), updatedAccountData, nil); err != nil {
+		log.Printf("Error al guardar la cuenta actualizada: %v\n", err)
+		return -1
+	}
 
-    // Guardar la cuenta actualizada en la base de datos
-    if err := dbAccounts.Put([]byte(accountName), updatedAccountData, nil); err != nil {
-        log.Printf("Error al guardar la cuenta actualizada: %v\n", err)
-        return -1
-    }
-
-    return float64(result.Amount)
+	return float64(result.Amount)
 }
-
-

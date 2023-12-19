@@ -2,81 +2,34 @@ package files
 
 import (
 	"bufio"
-	// "context"
 	"encoding/json"
-	//"flag"
+
 	"fmt"
 	"log"
 
-	"github.com/tkanos/gonfig"
-	// net "github.com/libp2p/go-libp2p/core/network"
-	// peer "github.com/libp2p/go-libp2p/core/peer"
-	// pstore "github.com/libp2p/go-libp2p/core/peerstore"
-
-	// ma "github.com/multiformats/go-multiaddr"
 	"github.com/syndtr/goleveldb/leveldb"
-	//"github.com/tkanos/gonfig"
-	//"reflect"
 )
 
 func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio.ReadWriter) {
-	configuration := Configuration{}
-	err := gonfig.GetConf(GetFileName(), &configuration)
-	if err != nil {
-		fmt.Println(err)
-		// os.Exit(500)
-	}
 
-	transactions := []Transaction{
-
-		{
-			Sender:    configuration.RootSender,
-			Recipient: configuration.RootRecipient,
-			Amount:    configuration.RootAmount,
-			Nonce:     configuration.RootNonce,
-		},
-	}
-
-	iter_check := db.NewIterator(nil, nil)
-	defer iter_check.Release()
-	empty := !iter_check.Next()
-	if empty {
-		fmt.Printf("EMPTYYYYYYYYYY LA CONCHA DE TU HERMANAS")
-		//Se crea el bloque raíz con índice 1, previous hash "" y una transacción con información contenida en el config file
-		block := GenerateBlock(1, "", transactions)
-		if err := UpdateBlockChain(db,dbCache, block); err != nil {
-			log.Fatal(err)
-		}
-		// if err := SaveBlock(dbCache, block); err != nil {
-		// 	log.Fatal(err)
-		// }
-
-	}else{
-		fmt.Printf("EMPTYYYYYYYYYYNTTTTTTTTTTT ")
-	}
-
-	Amount, Name, Mnemonic, PublicKey, PrivateKey, err := Login(dbAccounts, rw)
+	Amount, Name, _, _, _, err := Login(dbAccounts, rw)
 	if err != nil {
 		fmt.Printf("Error durante el login: %s\n", err)
 		return // O manejar el error como sea apropiado
 	}
 
-	fmt.Printf("Resultado desde el main:\n")
-	fmt.Printf("Amount: %d\n", Amount)
-	fmt.Printf("Mnemonic: %s\n", Mnemonic)
-	fmt.Printf("name: %s\n", Name)
-	fmt.Printf("Public: %s\n", PublicKey)
-	fmt.Printf("Private: %s\n", PrivateKey)
+	fmt.Printf("Información del usuario:\n")
+	fmt.Printf("Usuario: %s\n", Name)
+	fmt.Printf("Cantidad de tokens: %d\n", Amount)
 
 	for {
 		// Mostrar el menú
 		fmt.Println("----------MENÚ-BLOCKCHAIN----------")
 		fmt.Println("Menú:")
 		fmt.Println("1. Hacer una transaccion")
-		fmt.Println("2. Leer transacción")
-		fmt.Println("3. Mostrar cadena de bloques")
-		fmt.Println("4. Mostrar estado de cuentas")
-		fmt.Println("5. Salir")
+		fmt.Println("2. Mostrar cadena de bloques")
+		fmt.Println("3. Mostrar estado de cuentas")
+		fmt.Println("4. Salir")
 		fmt.Println("-----------------------------------")
 		// Leer la opción del usuario
 		var option int
@@ -97,8 +50,7 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 			var key_cache []byte
 			var value []byte
 			var block Block
-			
-			PrintBlockChain(dbCache)
+
 			iter_cache.Next()
 			value = iter_cache.Value()
 			key_cache = iter_cache.Key()
@@ -143,8 +95,8 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 			}
 			fmt.Printf("Te quedaste con: %.2f\n", finalAmount) // Utiliza %.2f para dos decimales
 			Amount = int(finalAmount)
-			finalAmountDestiny := AddAmountToAccount(dbAccounts,montoTransferir,recipient)
-			fmt.Printf("%s quedó con %d unidades\n", recipient, finalAmountDestiny)
+			finalAmountDestiny := AddAmountToAccount(dbAccounts, montoTransferir, recipient)
+			fmt.Printf("%v quedó con %v unidades\n", recipient, finalAmountDestiny)
 			transaction := []Transaction{
 				{
 					Sender:    Name,
@@ -153,34 +105,6 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 					Nonce:     nonce + 1,
 				},
 			}
-
-			//files.SignTransaction(PrivateKey,&transaction[0])
-			//ItIsValid := files.VerifySignature(PublicKey, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
-			//if ItIsValid {
-			//fmt.Println("La firma es válida y fue firmado por Bob.")
-			//} else {
-			//fmt.Println("La firma es inválida.")
-			//}
-
-			//if receiver == 1 {
-			//files.SignTransaction(privKey1, &transaction[0])
-			//ItIsValid := files.VerifySignature(pubKey1, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
-			//if ItIsValid {
-
-			//fmt.Println("La firma es válida y fue firmado por Bob.")
-			//} else {
-			//fmt.Println("La firma es inválida.")
-			//}
-
-			// if receiver == 1 {
-			// 	files.SignTransaction(privKey1, &transaction[0])
-			// 	ItIsValid := files.VerifySignature(pubKey1, files.GetHashTransaction(&transaction[0]), transaction[0].Signature)
-			// 	if ItIsValid {
-
-			// 		fmt.Println("La firma es válida y fue firmado por Bob.")
-			// 	} else {
-			// 		fmt.Println("La firma es inválida.")
-			// 	}
 
 			prev_hash = block.Hash
 
@@ -196,7 +120,7 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 				log.Printf("Error deleting key %s: %v", key_cache, err)
 			}
 
-			if err := UpdateBlockChain(db, dbCache,block); err != nil {
+			if err := UpdateBlockChain(db, dbCache, block); err != nil {
 				log.Fatal(err)
 			}
 
@@ -216,39 +140,13 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 
 			fmt.Println("---FIN--TRANSACCION---")
 
-		//case 2:
-		//var blockNumber int
-		//fmt.Print("Ingrese el número del bloque que leer: ")
-		//fmt.Scan(&blockNumber)
-
-		//// Carga el bloque desde la base de datos
-		//block, err := files.LoadBlock(db, blockNumber)
-		//if err != nil {
-		//log.Printf("Error al cargar el bloque: %v", err)
-		//} else {
-		//fmt.Println("Bloque cargado desde la base de datos.")
-		//blockaux := *block
-		//files.PrintBlockData(blockaux)
-		//trans := &blockaux.Transactions[0]
-		//verify1 := files.VerifySignature(pubKey1, files.GetHashTransaction(trans), blockaux.Transactions[0].Signature)
-		//verify2 := files.VerifySignature(pubKey2, files.GetHashTransaction(trans), blockaux.Transactions[0].Signature)
-		//if verify1 {
-		//fmt.Println("La firma es válida y fue firmado por Bob.")
-		//} else if verify2 {
-		//	fmt.Println("La firma es válida y fue firmado por Alice.")
-		//} else {
-		//	fmt.Println("La firma es inválida.")
-		//}
-		//}
-		//// Imprime los datos del bloque
-
-		case 3:
+		case 2:
 			PrintBlockChain(db)
-		case 4:
+		case 3:
 			PrintAllAccounts(dbAccounts)
-		case 5:
+		case 4:
 			fmt.Println("Saliendo del programa.")
-			defer dbCache.Close()
+			//defer dbCache.Close()
 			return
 		default:
 			fmt.Println("Opción no válida. Inténtalo de nuevo.")

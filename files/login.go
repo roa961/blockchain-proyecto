@@ -132,10 +132,8 @@ func Login(db *leveldb.DB, rw *bufio.ReadWriter) (int, string, string, PublicKey
 			if err != nil {
 				fmt.Println("Error:", err)
 			} else {
-				fmt.Println("Parámetros para el usuario " + name)
-				fmt.Println("Private Key:", privKey)
-				fmt.Println("Public Key:", pubKey)
-				fmt.Println("Mnemonic:", mnemonic)
+				fmt.Println("Usuario " + name + " creado con éxito\n")
+
 			}
 			account := Account{
 				PublicKey:    pubKey,
