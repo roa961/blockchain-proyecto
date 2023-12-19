@@ -59,7 +59,6 @@ func PrintBlockData(block Block) {
 }
 
 func PrintBlockChain(db *leveldb.DB) {
-
 	iter := db.NewIterator(nil, nil)
 	for iter.Next() {
 		value := iter.Value()
@@ -89,24 +88,6 @@ func PrintBlockChain(db *leveldb.DB) {
 
 }
 
-//	func GetBlock(db *leveldb.DB) ([]byte, error) {
-//		var blockaux []Block
-//		iter := db.NewIterator(nil, nil)
-//		for iter.Next() {
-//			value := iter.Value()
-//			var block Block
-//			if err := json.Unmarshal([]byte(value), &block); err != nil {
-//				fmt.Printf("Error al deserializar el bloque: %v\n", err)
-//				return nil, err
-//			}
-//			blockaux = append(blockaux, block)
-//		}
-//		jsonPersona, err := json.Marshal(blockaux)
-//		if err != nil {
-//			return nil, err
-//		}
-//		return jsonPersona, nil
-//	}
 func GetBlock(db *leveldb.DB) []Block {
 	var blockaux []Block
 	iter := db.NewIterator(nil, nil)

@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+
 	//"time"
 
 	mrand "math/rand"
@@ -23,96 +24,153 @@ import (
 )
 
 var mutex = &sync.Mutex{}
+var allBlocks []Block
 
-func ReadData(rw *bufio.ReadWriter, db *leveldb.DB) {
-    jsonPersona := GetBlock(db)
+func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, stopChan <-chan struct{}) {
+	//jsonPersona := GetBlock(db)
 
-    for {
-        str, err := rw.ReadString('\n')
-        if err != nil {
-            log.Fatal(err)
-        }
+	for {
+		select {
+		case <-stopChan: // Si stopChan se cierra, sale de la función
+			fmt.Println("Deteniendo ReadData...")
+			return
 
-        // Quita espacios en blanco y saltos de línea
-        str = strings.TrimSpace(str)
+		default:
+			// Leer del stream
+			str, err := rw.ReadString('\n')
+			if err != nil {
+				log.Fatal(err)
+			}
+			// Quita espacios en blanco y saltos de línea
+			str = strings.TrimSpace(str)
 
-        // Imprime lo que se leyó, independientemente de su contenido
-        fmt.Printf("Received: %s\n", str)
+			if str == "" {
+				fmt.Printf("Cadena vacía recibida\n")
+				continue
+			}
 
-        if str == "" {
-            fmt.Printf("Cadena vacía recibida\n")
-            continue
-        }
+			// Intenta deserializar el string en un único Block
+			var block Block
+			errBlock := json.Unmarshal([]byte(str), &block)
 
-        chain := make([]Block, 0)
-        err = json.Unmarshal([]byte(str), &chain)
+			if errBlock != nil {
+				if str == "1" { // Verifica si el string recibido es "1"
+					fmt.Println("Recibido '1', terminando ReadData...")
+					return // Termina la ejecución de la función (y por lo tanto de la goroutine)
+				}
 
-        if err != nil { // Si hay un error, asume que es un string simple y lo imprime
-            fmt.Printf("String recibido: %s\n", str)
-        } else { // Si no hay error, asume que es un tipo Block y procede como antes
-            mutex.Lock()
-           // if len(chain) > len(jsonPersona) {
-                jsonPersona = chain
-                bytes, err := json.MarshalIndent(jsonPersona, "", "  ")
-                if err != nil {
-                    log.Fatal(err)
-                }
-                fmt.Printf("\x1b[32m%s\x1b[0m> ", string(bytes))
-          //  }
-            mutex.Unlock()
-        }
-    }
+				if strings.HasPrefix(str, "{\"PublicKey\":{\"Curve\":{") {
+					var account Account
+					err := json.Unmarshal([]byte(str), &account)
+					if err != nil {
+
+					}
+					data, err := json.Marshal(account)
+					mutex.Lock()
+					dbAccounts.Put([]byte(account.Name), data, nil)
+					mutex.Unlock()
+
+				}
+
+				if strings.HasPrefix(str, "[{\"Index\":1,\"Timestamp\"") {
+
+					var blocks []Block
+					err := json.Unmarshal([]byte(str), &blocks)
+					if err != nil {
+						log.Printf("Error al deserializar el JSON en blocks: %v\n", err)
+						return
+					}
+
+					// Ahora puedes trabajar con el slice de blocks
+					// Por ejemplo, imprimir el primer bloque si existe
+					if len(blocks) > 0 {
+						// Aquí puedes añadir más lógica para manejar los bloques
+						UpdateBlockChain(db, dbCache, blocks[0])
+
+					}
+				}
+
+			}
+			if errBlock == nil {
+
+				// Imprimir detalles del bloque
+				var amountSpended float64
+				var recipient string
+				var sender string
+				for _, tx := range block.Transactions {
+					sender = tx.Sender
+					recipient = tx.Recipient
+					amountSpended = tx.Amount
+				}
+				AddAmountToAccount(dbAccounts, amountSpended, recipient)
+				SetNewAmount(dbAccounts, amountSpended, sender)
+				// Actualizar la cadena de bloques con el nuevo bloque
+				err := UpdateBlockChain(db, dbCache, block)
+				//err := SaveBlock(db, block)
+				if err != nil {
+					log.Printf("Error al actualizar la cadena de bloques con el nuevo bloque: %v\n", err)
+				}
+
+			}
+
+		}
+	}
 }
 
-func WriteData(rw *bufio.ReadWriter, db *leveldb.DB) {
-    stdReader := bufio.NewReader(os.Stdin)
+func WriteData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, stopChan chan<- struct{}) {
+	stdReader := bufio.NewReader(os.Stdin)
 
-    for {
-        fmt.Println("Selecciona una opción:")
-        fmt.Println("1. Enviar bloque")
-        fmt.Println("2. Enviar mensaje personalizado")
-        fmt.Print("> ")
+	for {
+		fmt.Println("Selecciona una opción:")
+		fmt.Println("1. Enviar mensaje ")
+		fmt.Println("2. Mostrar menú")
+		fmt.Println("3. Cerrar comunicación")
+		fmt.Print("> ")
 
-        option, err := stdReader.ReadString('\n')
-        if err != nil {
-            log.Fatal(err)
-        }
+		option, err := stdReader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
 
-        option = strings.TrimSpace(option) // Elimina espacios y saltos de línea
+		option = strings.TrimSpace(option) // Elimina espacios y saltos de línea
 
-        switch option {
-        case "1":
-            jsonPersona := GetBlock(db)
+		switch option {
 
-            mutex.Lock()
-            bytes, err := json.Marshal(jsonPersona)
-            if err != nil {
-                log.Println(err)
-            }
-            rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
-            rw.Flush()
-            mutex.Unlock()
+		case "1":
+			fmt.Print("Ingresa tu mensaje: ")
+			message, err := stdReader.ReadString('\n')
+			if err != nil {
+				log.Fatal(err)
+			}
 
-        case "2":
-            fmt.Print("Ingresa tu mensaje: ")
-            message, err := stdReader.ReadString('\n')
-            if err != nil {
-                log.Fatal(err)
-            }
+			message = strings.TrimSpace(message) // Elimina espacios y saltos de línea
 
-            message = strings.TrimSpace(message) // Elimina espacios y saltos de línea
+			mutex.Lock()
+			rw.WriteString(fmt.Sprintf("%s\n", message))
+			rw.Flush()
+			mutex.Unlock()
+		case "2":
+			Menu(db, dbAccounts, dbCache, rw) // Llama a la función Menu
+			// jsonPersona := GetBlock(db)
 
-            mutex.Lock()
-            rw.WriteString(fmt.Sprintf("%s\n", message))
-            rw.Flush()
-            mutex.Unlock()
+			//         mutex.Lock()
+			//         bytes, err := json.Marshal(jsonPersona)
+			//         if err != nil {
+			//             log.Println(err)
+			//         }
+			//         rw.WriteString(fmt.Sprintf("%s\n", string(bytes)))
+			//         rw.Flush()
+			//         mutex.Unlock()
+		case "3":
+			fmt.Println("Cerrando comunicación...")
+			stopChan <- struct{}{} // Enviar señal para cortar la comunicación
+			return
 
-        default:
-            fmt.Println("Opción no válida. Por favor, elige 1 o 2.")
-        }
-    }
+		default:
+			fmt.Println("Opción no válida. Por favor, elige 1, 2, 3 o 4.")
+		}
+	}
 }
-
 
 func MakeBasicHost(listenPort int, secio bool, randseed int64) (host.Host, error) {
 
