@@ -15,7 +15,7 @@ En el repositorio es posible encontrar la entrega final del proyecto semestral. 
 - **Realizar una transacción entre dos usuarios**: Cada una de estas puede ser realizada por dos usuario, Bob y Alice, los cuales se eligen al momento de hacer una transacción, donde se deberá especificar un monto a transferir.
 - **Mostrar cadena de bloques**: En esta opción se puede mostrar la opción asociada a cada bloque, de manera secuencial.
 
-- **Mostrar el estado de cuentas**
+- **Mostrar el estado de cuentas**: Se muestran los usuarios y sus respectivos montos
 
 
 
