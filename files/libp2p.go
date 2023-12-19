@@ -64,7 +64,6 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCa
 					return // Termina la ejecución de la función (y por lo tanto de la goroutine)
 				}
 
-                
 				if strings.HasPrefix(str, "Nombre: ") && strings.Contains(str, ", Monto: ") {
 					// Extraer los datos de la cadena
 					parts := strings.Split(str, ", Monto: ")
@@ -118,28 +117,27 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCa
 
 				}
 
-                if strings.HasPrefix(str, "[{\"Index\":1,\"Timestamp\"") {
-					
-                    var blocks []Block
-                err := json.Unmarshal([]byte(str), &blocks)
-                if err != nil {
-                    log.Printf("Error al deserializar el JSON en blocks: %v\n", err)
-                    return
-                }
+				if strings.HasPrefix(str, "[{\"Index\":1,\"Timestamp\"") {
 
-                // Ahora puedes trabajar con el slice de blocks
-                // Por ejemplo, imprimir el primer bloque si existe
-                if len(blocks) > 0 {
-                    fmt.Printf("Primer bloque recibido: %+v\n", blocks[0])
-                    // Aquí puedes añadir más lógica para manejar los bloques
-                    UpdateBlockChain(db,dbCache,blocks[0])
-                    
-                }
+					var blocks []Block
+					err := json.Unmarshal([]byte(str), &blocks)
+					if err != nil {
+						log.Printf("Error al deserializar el JSON en blocks: %v\n", err)
+						return
+					}
+
+					// Ahora puedes trabajar con el slice de blocks
+					// Por ejemplo, imprimir el primer bloque si existe
+					if len(blocks) > 0 {
+						fmt.Printf("Primer bloque recibido: %+v\n", blocks[0])
+						// Aquí puedes añadir más lógica para manejar los bloques
+						UpdateBlockChain(db, dbCache, blocks[0])
+
+					}
 				}
 
 			}
 			if errBlock == nil {
-				
 
 				// Imprimir detalles del bloque
 				fmt.Printf("Block:\n")
@@ -148,32 +146,31 @@ func ReadData(rw *bufio.ReadWriter, db *leveldb.DB, dbAccounts *leveldb.DB, dbCa
 				fmt.Printf("PreviousHash: %s\n", block.PreviousHash)
 				fmt.Printf("Hash: %s\n", block.Hash)
 				fmt.Printf("Transactions:\n")
-                var amountSpended float64
-                var recipient string
-                var sender string
+				var amountSpended float64
+				var recipient string
+				var sender string
 				for _, tx := range block.Transactions {
 					fmt.Printf("\tSender: %s\n", tx.Sender)
-                    sender = tx.Sender
+					sender = tx.Sender
 					fmt.Printf("\tRecipient: %s\n", tx.Recipient)
-                    recipient = tx.Recipient
+					recipient = tx.Recipient
 					fmt.Printf("\tAmount: %.2f\n", tx.Amount)
-                    amountSpended = tx.Amount
-					fmt.Printf("\tNonce: %d\n", tx.Nonce)   
+					amountSpended = tx.Amount
+					fmt.Printf("\tNonce: %d\n", tx.Nonce)
 				}
-                finalAmountDestiny := AddAmountToAccount(dbAccounts,amountSpended,recipient)
-                fmt.Printf("%s quedó con %d unidades\n", recipient, finalAmountDestiny)
-                finalAmountOrigin := SetNewAmount(dbAccounts,amountSpended,sender)
-                fmt.Printf("%s quedó con %d unidades\n", sender, finalAmountOrigin)
+				finalAmountDestiny := AddAmountToAccount(dbAccounts, amountSpended, recipient)
+				fmt.Printf("%s quedó con %d unidades\n", recipient, finalAmountDestiny)
+				finalAmountOrigin := SetNewAmount(dbAccounts, amountSpended, sender)
+				fmt.Printf("%s quedó con %d unidades\n", sender, finalAmountOrigin)
 				fmt.Println("---------------------------")
 
 				// Actualizar la cadena de bloques con el nuevo bloque
-				err := UpdateBlockChain(db,dbCache ,block)
+				err := UpdateBlockChain(db, dbCache, block)
 				//err := SaveBlock(db, block)
 				if err != nil {
 					log.Printf("Error al actualizar la cadena de bloques con el nuevo bloque: %v\n", err)
 				}
 
-				
 			}
 
 		}

@@ -44,14 +44,14 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 		fmt.Printf("EMPTYYYYYYYYYY LA CONCHA DE TU HERMANAS")
 		//Se crea el bloque raíz con índice 1, previous hash "" y una transacción con información contenida en el config file
 		block := GenerateBlock(1, "", transactions)
-		if err := UpdateBlockChain(db,dbCache, block); err != nil {
+		if err := UpdateBlockChain(db, dbCache, block); err != nil {
 			log.Fatal(err)
 		}
 		// if err := SaveBlock(dbCache, block); err != nil {
 		// 	log.Fatal(err)
 		// }
 
-	}else{
+	} else {
 		fmt.Printf("EMPTYYYYYYYYYYNTTTTTTTTTTT ")
 	}
 
@@ -97,7 +97,7 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 			var key_cache []byte
 			var value []byte
 			var block Block
-			
+
 			PrintBlockChain(dbCache)
 			iter_cache.Next()
 			value = iter_cache.Value()
@@ -143,7 +143,7 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 			}
 			fmt.Printf("Te quedaste con: %.2f\n", finalAmount) // Utiliza %.2f para dos decimales
 			Amount = int(finalAmount)
-			finalAmountDestiny := AddAmountToAccount(dbAccounts,montoTransferir,recipient)
+			finalAmountDestiny := AddAmountToAccount(dbAccounts, montoTransferir, recipient)
 			fmt.Printf("%s quedó con %d unidades\n", recipient, finalAmountDestiny)
 			transaction := []Transaction{
 				{
@@ -196,7 +196,7 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 				log.Printf("Error deleting key %s: %v", key_cache, err)
 			}
 
-			if err := UpdateBlockChain(db, dbCache,block); err != nil {
+			if err := UpdateBlockChain(db, dbCache, block); err != nil {
 				log.Fatal(err)
 			}
 
@@ -248,7 +248,6 @@ func Menu(db *leveldb.DB, dbAccounts *leveldb.DB, dbCache *leveldb.DB, rw *bufio
 			PrintAllAccounts(dbAccounts)
 		case 5:
 			fmt.Println("Saliendo del programa.")
-			defer dbCache.Close()
 			return
 		default:
 			fmt.Println("Opción no válida. Inténtalo de nuevo.")
