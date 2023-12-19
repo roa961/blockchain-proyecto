@@ -160,3 +160,41 @@ func ResetBlockChain(db *leveldb.DB) {
 		db.Delete([]byte(key), nil)
 	}
 }
+
+func AddAmountToAccount(dbAccounts *leveldb.DB, amountToAdd float64, accountName string) float64 {
+    // Obtener la cuenta desde la base de datos
+    accountData, err := dbAccounts.Get([]byte(accountName), nil)
+    if err != nil {
+        log.Printf("Error al obtener la cuenta: %v\n", err)
+        return -1
+    }
+
+    // Deserializar la cuenta
+    var result Result
+    err = json.Unmarshal(accountData, &result)
+    if err != nil {
+        log.Printf("Error al deserializar JSON: %v\n", err)
+        return -1
+    }
+    fmt.Printf("Saldo Original: %.2f\n", result.Amount)
+
+    // Sumar el monto a la cuenta
+    result.Amount += int(amountToAdd)
+
+    // Serializar la cuenta actualizada
+    updatedAccountData, err := json.Marshal(result)
+    if err != nil {
+        log.Printf("Error al serializar la cuenta actualizada: %v\n", err)
+        return -1
+    }
+
+    // Guardar la cuenta actualizada en la base de datos
+    if err := dbAccounts.Put([]byte(accountName), updatedAccountData, nil); err != nil {
+        log.Printf("Error al guardar la cuenta actualizada: %v\n", err)
+        return -1
+    }
+
+    return float64(result.Amount)
+}
+
+
